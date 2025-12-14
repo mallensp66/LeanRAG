@@ -1,6 +1,8 @@
+import sys
+from pathlib import Path
+sys.path.append(Path(__file__).parent.parent.__str__())
 import json
 import os
-import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import multiprocessing
 from tqdm import tqdm
@@ -44,7 +46,7 @@ class llm_client():
 class TripleScorer:
     def __init__(self, triple_path:str, triple_soure_path:str , output_path:str = None):
         """
-        初始化打分类
+        Initialize classification
         """
         self.triples = io_file.read(triple_path)
         self.triple_sources = io_file.read(triple_soure_path)
@@ -54,15 +56,15 @@ class TripleScorer:
 
         self.prompt = prompt_kg_judge.score_triple_prompt
         
-        llm_client_args = {"llm_model":"Qwen2.5-72B", "llm_url":"http://0.0.0.0:8001/v1", "llm_api_key":"EMPTY"}
+        llm_client_args = {"llm_model":"qwen3:32b-fp16", "llm_url":"http://10.0.101.102:11434/v1", "llm_api_key":"lm-studio"}
         self.client = llm_client(llm_client_args)
 
         self.output_path = output_path if output_path else triple_path.replace(".jsonl", ".scores.jsonl")
     
     def parse_triple(self, triple_str:str) -> dict[dict]:
         """
-        解析三元组字符串为结构化字典
-        :param triple_str: "Head|relation|Tail" 格式的字符串
+        Parse the triplet string into a structured dictionary
+        :param triple_str: "Head|relation|Tail" format string
         :return: {"head":..., "relation":..., "tail":...}
         """
 
@@ -75,10 +77,10 @@ class TripleScorer:
 
     def score_triple(self, triple_data:dict) -> dict:
         """
-        :param jsonl_line: JSONL格式的输入数据
-        :return: 包含所有打分结果的字典
+        :param jsonl_line: JSONL format input data
+        :return: A dictionary containing all scoring results
         """
-        # 解析输入数据
+        # Parse input data
         triple_str = triple_data["triple"]
         source_text = triple_data["source_text"]
         triple = self.parse_triple(triple_str)
@@ -97,12 +99,12 @@ class TripleScorer:
 
     def parse_result(self, response: str) -> dict:
         try:
-            # 新增正则表达式提取核心字段
+            # Added regular expression to extract core fields
             score_match = re.search(r'"score"\s*:\s*(\d*\.?\d+)', response, re.DOTALL)
             rationale_match = re.search(r'"rationale"\s*:\s*"((?:\\"|[^"])*)"', response, re.DOTALL)
             
             if score_match and rationale_match:
-                # 提取并验证分数范围
+                # Extract and validate score range
                 score = float(score_match.group(1))
                 if 0.0 <= score <= 1.0:
                     return {
@@ -110,12 +112,12 @@ class TripleScorer:
                         "rationale": rationale_match.group(1).replace('\\"', '"')
                     }
             
-            # 备用解析方案：尝试提取纯数字评分
+            # Alternative analysis method: Try to extract pure numerical scores
             numeric_score = re.search(r'\b(\d\.\d)\b', response)
             if numeric_score:
                 score = float(numeric_score.group(1))
                 if 0.0 <= score <= 1.0:
-                    # 提取完整引号内容作为理由
+                    # Extract the complete quoted content as the reason
                     quote_match = re.search(r'"([^"]+)"', response)
                     return {
                         "score": score,
@@ -140,33 +142,33 @@ class TripleScorer:
 
     def run_one(self, triple_data:dict) -> dict:
         """
-        处理单个三元组
+        Processing a single triple
         """
         triple_score = self.score_triple(triple_data)
         return triple_score
 
     def run(self) -> dict:
         """
-        批量处理三元组（多线程加速）
-        :return: 处理后的三元组列表
+        Batch processing of triples (accelerated by multi-threading)
+        :return: List of processed triples
         """
         results = []
         scores = []
         
-        # 使用线程池并发处理
+        # Use thread pools for concurrent processing.
         # max_workers = multiprocessing.cpu_count() - 1 
         max_workers = 64
         logger.info(f"Using {max_workers} threads for processing.")
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # 创建future到data的映射
+            # Create a mapping from future to data.
             future_to_data = {}
             for data in self.triples:
-                # 提前处理source_text
+                # Preprocess source_text
                 data["source_text"] = self.triple_sources[(data["page_idx"], data["paragraph_idx"])]
                 future = executor.submit(self.run_one, data)
                 future_to_data[future] = data
 
-            # 进度条跟踪
+            # Progress bar tracking
             for future in tqdm(as_completed(future_to_data), 
                               total=len(future_to_data), 
                               desc="Scoring triples..."):
@@ -199,7 +201,7 @@ class TripleScorer:
 
 if __name__ == "__main__":
     
-    # 测试文件
+    # test file
     triple_source_path = "data/wtr03_e_by_page_block-head_100.jsonl"
     triple_path = "data/processed_wtr_reports-kg-vllm-test_qwen2.5-7B/wtr03_e_by_page_block-head_100-all_dbpedia_head_entity/new_triples_wtr03_e_by_page_block-head_100.jsonl"
     triple_score_path = triple_path.replace(".jsonl", "-score.jsonl")

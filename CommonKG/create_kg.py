@@ -1,14 +1,15 @@
+import sys
+from pathlib import Path
+sys.path.append(Path(__file__).parent.parent.__str__())
 import json
 import time
-import sys
-sys.path.append("/data/zyz/LeanRAG")
 from tqdm import tqdm
 from corpus import Corpus
 import os
 import yaml
 from pathlib import Path
 import multiprocessing
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed 
 import shutil
 from tools.logger_factory import setup_logger
 from tools.utils import read_jsonl, write_jsonl, create_if_not_exist
@@ -33,7 +34,7 @@ def read_txt(path: str):
 
 def process_llm_batch(item_batch, llm_processer, ref_kg_path):
     """
-    处理单个批次的LLM请求
+    Processing LLM requests in a single batch
     """
     doc_name, source_id, text, match_words = (
         item_batch["doc_name"],
@@ -42,13 +43,13 @@ def process_llm_batch(item_batch, llm_processer, ref_kg_path):
         item_batch["match_words"]
     )
     
-    # 生成大模型推理输入文件
+    # Generate large model inference input files
     prompt = llm_processer.extract_triple_prompt(text, match_words, ref_kg_path)
-    # 大模型推理
+    # Large model reasoning
     response = llm_processer.infer(prompt)
-    # 推理结果后处理（三元组过滤）
+    # Post-processing of inference results (triple filtering)
     infer_triples, head_entities, tail_entities = Triple.get_triple(match_words, response)
-    # 再次调用大模型对实体进行验证
+    # The entity is validated again by calling the large model.
     verify_entities = llm_processer.entity_evaluate(tail_entities)
     
     return {
@@ -62,36 +63,36 @@ def process_llm_batch(item_batch, llm_processer, ref_kg_path):
 
 def extract_desc(triple_path, corpus_path, task_conf, llm_processer):
     """
-    为三元组抽取描述（支持多线程加速）
+    Extract descriptions from triples (supports multi-threading for acceleration)
     """
     start_time = time.time()
     desc_output_path = str(triple_path).replace(".jsonl", "_descriptions.jsonl")
-    with open(corpus_path, "r") as f:
+    with open(corpus_path, "r", encoding="utf-8") as f:
         corpus=json.load(f)
     corpus_dict = {item["hash_code"]: item["text"] for item in corpus}
         
-    # 读取三元组数据
+    # Read triple data
     triples = read_jsonl(triple_path)
     logger.info(f"Total triples to add description: {len(triples)}")
 
     for item in triples:
-        # 为每个三元组添加上下文信息
+        # Add context information to each triple
         source_id = item["source_id"]
         item["text"] = corpus_dict.get(source_id, "")
 
     
-    # 线程池配置
+    # Thread pool configuration
     max_workers = task_conf["num_processes_infer"] if task_conf["num_processes_infer"] != -1 else multiprocessing.cpu_count()
     all_results = []
     
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # 提交所有任务到线程池
+        # Submit all tasks to the thread pool
         future_to_triple = {
             executor.submit(process_single_description, triple, llm_processer): triple 
             for triple in triples
         }
         
-        # 使用tqdm显示处理进度
+        # Use tqdm to display the processing progress.
         for future in tqdm(as_completed(future_to_triple), total=len(triples), desc="Extracting descriptions..."):
             try:
                 result = future.result()
@@ -102,13 +103,13 @@ def extract_desc(triple_path, corpus_path, task_conf, llm_processer):
                 logger.error(f"Error processing description: {str(e)}")
                 continue
 
-    # 将所有结果写入输出文件        
+    # Write all results to the output file  
     write_jsonl(data=all_results, path=desc_output_path, mode="w")
 
     end_time = time.time()
     logger.info(f"Description extraction completed in {end_time - start_time} seconds")
 
-    # 统计成功抽取了描述的三元组数量
+    # The number of described triples was successfully extracted.
     description_count = {"total": len(all_results), "with_description": 0, "without_description": 0}
     for r in all_results:
         if len(r["triple"].split("\t")) == 6:
@@ -121,17 +122,30 @@ def extract_desc(triple_path, corpus_path, task_conf, llm_processer):
 
 def process_single_description(triple, llm_processor) -> str:
     """
-    处理单个三元组的描述抽取
+    Description extraction for processing single triples
     """
     try:
-        # 构造prompt
+        # Construct prompt
         text = triple["text"]
         triple_str = triple["triple"]
         prompt = llm_processor.extract_description_prompt(text, triple_str)
 
-        # 调用LLM
-        response = llm_processor.infer(prompt, output_json=True)
+    except Exception as e:
+        logger.error(f"extract_description prompt failed: {str(e)}")
 
+    try:
+
+        # Call LLM 
+        response = llm_processor.infer(prompt, output_json=True) 
+        if response == '':
+            logger.error(f"extract_description failed, 2nd try")
+            response = llm_processor.infer(prompt, output_json=True) 
+        if response == '':
+            logger.error(f"extract_description failed")
+    except Exception as e:
+        logger.error(f"extract_description failed: {str(e)}")
+
+    try:
         result = Triple.parse_description_plustype_response(triple_str, response)
 
         triple["triple"] = result
@@ -139,49 +153,49 @@ def process_single_description(triple, llm_processor) -> str:
         return triple
 
     except Exception as e:
-        logger.error(f"Description generation failed: {str(e)}")
+        logger.error(f"parse_description_plustype_response failed: {str(e)}")
 
         return triple
 
 
 def process_single_file(corpus_path, task_conf, llm_processer, output_dir="output"):
-    """处理单个文件的三元组抽取"""
+    """Triple extraction from a single file"""
     start_time = time.time()
-    pedia_entity_path = task_conf["pedia_entity_path"]  # 头实体路径
+    pedia_entity_path = task_conf["pedia_entity_path"]  # Header entity path
 
     try:
-    # 动态生成输出路径
+    # Dynamically generate output path
         file_name = Path(corpus_path).stem
         output_subdir = Path(output_dir) / file_name
         if output_subdir.exists():
             logger.info(f"Target files: {file_name} already exists, overwrite\n")
         else:
             output_subdir.mkdir(parents=True, exist_ok=True)
-        #移动chunk文件
+        #Move chunk file
         shutil.copy(corpus_path, output_subdir)
         
-        # 初始化输出文件路径
+        # Initialize the output file path
         result_triple_path = output_subdir / f"new_triples_{file_name}.jsonl"
         next_layer_entities_path = output_subdir / f"next_layer_entities_{file_name}.txt"
         all_entities_path = output_subdir / f"all_entities_{file_name}.txt"
-        match_words_path = output_subdir / f"match_words_{file_name}.jsonl"  ## 匹配结果路径
+        match_words_path = output_subdir / f"match_words_{file_name}.jsonl"  ## Match result path
 
 
-        # 当不跳过提取三元组时，进行多层次的实体匹配和三元组抽取
+        # When triple extraction is not skipped, multi-level entity matching and triple extraction are performed.
         if not task_conf["skip_extract_triple"]:
 
-            # 加载到头实体路径进行处理，假设有第0层，那么头实体直接next_layer_entities_path来匹配
+            # The data is loaded into the header entity path for processing. Assuming there is a layer 0, the header entity is directly matched using `next_layer_entities_path`.
             head_entities = read_txt(pedia_entity_path)
             next_layer_entities = list(set([item.strip() for item in head_entities]))
             write_txt(next_layer_entities_path, next_layer_entities, mode="w")
             logger.info(f"Initialize next_layer_entities num: {len(next_layer_entities)}")
             
-            # 初始化实体和三元组文件
+            # Initialize entity and triple files
             write_jsonl(data="", path=result_triple_path, mode="w")
             write_txt(data="", path=all_entities_path, mode="w")
-            with open(corpus_path, "r") as f:
+            with open(corpus_path, "r", encoding="utf-8") as f:
                 corpusfiles=json.load(f)
-            # 读取语料文件
+            # Read corpus file
             # corpusfiles = read_jsonl(corpus_path)
             logger.info(f"corpus paragraph num: {len(corpusfiles)}")
 
@@ -192,7 +206,7 @@ def process_single_file(corpus_path, task_conf, llm_processer, output_dir="outpu
                 logger.info(f"[num_iteration]: {iter+1} ---------------------\n")
                 logger.info("[corpus matching]-----------------------------------\n")
 
-                # 检查文件是否存在，如果存在则删除
+                # Check if the file exists; if it does, delete it.
                 if os.path.exists(match_words_path):
                     os.remove(match_words_path)
                             
@@ -220,7 +234,7 @@ def process_single_file(corpus_path, task_conf, llm_processer, output_dir="outpu
                 logger.info(f"[corpus match finished for {file_name} | Iteration {iter+1}]-----------------------------------\n")
                 match_end_time = time.time()
                 logger.info(f"Match time taken: {match_end_time - match_start_time} seconds")
-                # 每一层的头实体匹配结果写入文件（下一层覆盖上一层）
+                # The head entity matching results of each layer are written to a file (the next layer overwrites the previous layer).
                 write_jsonl(data=all_match_words, path=match_words_path, mode="w")
                 logger.info(f"Save current match result to: {match_words_path}")
 
@@ -228,37 +242,37 @@ def process_single_file(corpus_path, task_conf, llm_processer, output_dir="outpu
                 logger.info("[LLM response]-----------------------------------\n")
                 ref_kg_path = task_conf["ref_kg_path"] 
                 
-                # 初始化下一层实体文件
+                # Initialize the next level entity file
                 if os.path.exists(next_layer_entities_path):
                     os.remove(next_layer_entities_path)
 
-                # 初始化计数器和结果集合
+                # Initialize the counter and result set
                 layer_head_cnt, layer_tail_cnt, layer_triple_cnt = 0, 0, 0
                 current_all_triple = set()
                 current_all_entity = set()
 
-                # 读取现有的三元组和实体
+                # Read existing triples and entities
                 current_all_triple_item = read_jsonl(result_triple_path)
                 current_all_triple = set([item["triple"].lower() for item in current_all_triple_item])
                 current_all_entity = set([item.strip().lower() for item in read_txt(all_entities_path)])
 
-                # 使用线程池并行处理LLM请求
+                # Use a thread pool to process LLM requests in parallel.
                 max_workers = task_conf["num_processes_infer"] if task_conf["num_processes_infer"] != -1 else multiprocessing.cpu_count()
                 with ThreadPoolExecutor(max_workers=max_workers) as executor:  
-                    # 提交所有任务到线程池
+                    # Submit all tasks to the thread pool
                     future_to_item = {
                         executor.submit(process_llm_batch, item, llm_processer, ref_kg_path): item 
                         for item in all_match_words
                     }
                     
-                    # 使用tqdm显示处理进度
+                    # Use tqdm to display the processing progress.
                     for future in tqdm(as_completed(future_to_item), 
                                     total=len(all_match_words),
                                     desc=f"LLM Processing: {file_name} | Iter {iter+1}/{task_conf['level_num']}"):
                         try:
                             result = future.result()
                             
-                            # 处理三元组
+                            # Processing triples
                             new_triples_item = []
                             if result["infer_triples"] is not None:
                                 for triple in result["infer_triples"]:
@@ -276,7 +290,7 @@ def process_single_file(corpus_path, task_conf, llm_processer, output_dir="outpu
                                     write_jsonl(data=new_triples_item, path=result_triple_path, mode="a")
                                     logger.info(f"Add {len(new_triples_item)} triples to: {result_triple_path}")
 
-                            # 处理头实体
+                            # Handle header entity
                             if result["head_entities"] is not None:
                                 head_entities_cnt = 0
                                 for entity in result["head_entities"]:
@@ -285,12 +299,12 @@ def process_single_file(corpus_path, task_conf, llm_processer, output_dir="outpu
                                         head_entities_cnt += 1
                                         layer_head_cnt += 1
 
-                                # 更新完整的实体清单, 覆写
+                                # Update the complete entity list, overwrite
                                 if head_entities_cnt > 0:
                                     write_txt(data=current_all_entity, path=all_entities_path, mode="w")
                                     logger.info(f"Add {head_entities_cnt} entities to: {all_entities_path}")
 
-                            # 处理验证实体
+                            # Handle validation entities
                             if result["verify_entities"] is not None:
                                 tmp_next_layer_entities = set()
                                 for entity in result["verify_entities"]:
@@ -311,7 +325,7 @@ def process_single_file(corpus_path, task_conf, llm_processer, output_dir="outpu
                 logger.info(f"layer: {iter+1}, add head: {layer_head_cnt}, tail: {layer_tail_cnt}, triple: {layer_triple_cnt}")
         
 
-        # 为三元组抽取描述
+        # Extracting descriptions for triples
         if task_conf["extract_desc"]:
             if not os.path.getsize(result_triple_path) > 0:
               logger.warning(f"No triples found in {result_triple_path}, skip extracting descriptions")
@@ -346,21 +360,21 @@ def _process_paragraph_for_matching(args_tuple):
 
 
 def main():
-    ## 读取配置文件
+    ## Read configuration file
     conf_path = "CommonKG/config/create_kg_conf_test.yaml"
     with open(conf_path, "r", encoding="utf-8") as file:
         args = yaml.safe_load(file)
 
     logger.info(f"args:\n{args}\n")    
 
-    task_conf = args["task_conf"]  ## 任务参数
+    task_conf = args["task_conf"]  ## Task parameters
 
-    # 迭代提取次数
-    llm_conf = args["llm_conf"]  ## llm参数
+    # Number of iterations to extract
+    llm_conf = args["llm_conf"]  ## llm parameters
     llm_processer = LLM_Processor(llm_conf)
 
     
-    # 输入路径处理（支持文件/文件夹）
+    # Input path processing (supports files/folders)
     input_path = task_conf["corpus_path"]
     output_dir = task_conf["output_dir"]
     if os.path.isfile(input_path):
@@ -370,10 +384,10 @@ def main():
     else:
         raise ValueError(f"Invalid input path: {input_path}")
 
-    # 批量处理
+    # Batch processing
     success_count = 0
     
-    # 移动chunk文件
+    # Move chunk file
     for corpus_path in tqdm(files_to_process, desc="Processing files"):
         if process_single_file(corpus_path, task_conf, llm_processer, output_dir):
             success_count += 1
