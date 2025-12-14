@@ -18,7 +18,7 @@ from prompt import GRAPH_FIELD_SEP, PROMPTS
 from itertools import combinations
 
 logger=logging.getLogger(__name__)
-with open('config.yaml', 'r') as file:
+with open('config.yaml', 'r', encoding="utf-8") as file:
     config = yaml.safe_load(file)
 MODEL = config['deepseek']['model']
 DEEPSEEK_API_KEY = config['deepseek']['api_key']
@@ -42,6 +42,8 @@ def embedding(texts: list[str]) -> np.ndarray:
     return np.array(final_embedding)
 
 tokenizer = tiktoken.get_encoding("cl100k_base")
+
+
 def truncate_text(text, max_tokens=4096):
     tokens = tokenizer.encode(text)
     if len(tokens) > max_tokens:
@@ -94,9 +96,6 @@ def get_reasoning_chain(global_config,entities_set):
     return  reasoning_path,reasoning_path_information_description
 
 def get_entity_description(global_config,entities_set,mode=0):
-    
-    
-    
     columns=['entity_name','parent','description']
     entity_descriptions="\t\t".join(columns)+"\n"
     entity_descriptions+="\n".join([information[0]+"\t\t"+information[1]+"\t\t"+information[2] for information in entities_set])
@@ -122,6 +121,7 @@ def get_aggregation_description(global_config,reasoning_path,if_findings=False):
         aggregation_descriptions="\t\t".join(columns)+"\n"
         aggregation_descriptions+="\n".join([information[0]+"\t\t"+str(information[1]) for information in aggregation_results])
     return aggregation_descriptions,communities
+
 def query_graph(global_config,db,query):
     use_llm_func: callable = global_config["use_llm_func"]
     embedding: callable=global_config["embeddings_func"]
@@ -160,22 +160,24 @@ def query_graph(global_config,db,query):
     
     print(f"response time: {g-e:.2f}s")
     return describe,response
+
+
 if __name__=="__main__":
-    db = pymysql.connect(host='localhost', user='root',port=4321,
-                      passwd='123',  charset='utf8mb4')
+    db = pymysql.connect(host='localhost', user='root',port=3306,
+                      password='1234',  charset='utf8mb4')
     global_config={}
-    WORKING_DIR = f"/data/zyz/trag_ds/exp/lean_full_cs10_top10_chunk5/mix"
-    global_config['chunks_file']="/data/zyz/trag_ds/hi_ex/mix/kv_store_text_chunks.json"
+    WORKING_DIR = f"/ckg_data/mix_chunk3/mix_chunk3"
+    global_config['chunks_file']="ckg_data/mix_chunk3/mix_chunk3/mix_chunk3.json"
     global_config['embeddings_func']=embedding
     global_config['working_dir']=WORKING_DIR
-    global_config['topk']=10
+    global_config['topk']=2
     global_config['level_mode']=1
-    num=4
+    num=1
     instanceManager=InstanceManager(
-        url="http://xxx",
-        ports=[8001 for i in range(num)],
+        url="http://localhost",
+        ports=[11434 for i in range(num)],
         gpus=[i for i in range(num)],
-        generate_model="qwen3_32b",
+        generate_model="qwen3:32b-fp16",
         startup_delay=30
     )
     

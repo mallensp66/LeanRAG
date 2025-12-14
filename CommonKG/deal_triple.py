@@ -1,7 +1,8 @@
+import sys
+from pathlib import Path
+sys.path.append(Path(__file__).parent.parent.__str__())
 import json
 import os
-import sys
-sys.path.append("/data/zyz/LeanRAG")
 from tqdm import tqdm
 from prompt import PROMPTS
 import tiktoken
@@ -16,7 +17,7 @@ def summarize_entity(entity_name, description, summary_prompt, threshold, tokeni
         exact_prompt = summary_prompt.format(entity_name=entity_name, description=description)
         response = use_llm(exact_prompt)
         return entity_name, response
-    return entity_name, description  # 不需要摘要则返回原始 description
+    return entity_name, description  # If no summary is needed, return the original description.
 
 
 
@@ -24,7 +25,7 @@ def process_triple(file_path,output_path):
     create_if_not_exist(output_path)
     triple_path=os.path.join(file_path,f"new_triples_{os.path.basename(file_path)}_descriptions.jsonl")
     
-    with open(triple_path,"r") as f:
+    with open(triple_path,"r", encoding="utf-8") as f:
         entities={}
         relations=[]
         for uline in f:
@@ -101,16 +102,16 @@ def process_triple(file_path,output_path):
     write_jsonl(res_entity,f"{output_path}/entity.jsonl")
         
 if __name__=="__main__":
-    MODEL = "qwen3_32b"
-    num=4
+    MODEL = "qwen3:32b-fp16"
+    num=1
     instanceManager=InstanceManager(
-        url="http://10.140.37.22",
-        ports=[8001 for i in range(num)],
+        url="http://10.0.101.102",
+        ports=[11434 for i in range(num)],
         gpus=[i for i in range(num)],
         generate_model=MODEL,
         startup_delay=30
     )
     use_llm=instanceManager.generate_text
-    file_path="/data/zyz/LeanRAG/ckg_data/mix_chunk"
-    output_path="/data/zyz/LeanRAG/ckg_data/mix_chunk"
-    process_triple(file_path,output_path)
+    file_path= Path(Path(__file__).parent.parent.__str__(), "ckg_data/mix_chunk3/mix_chunk3")
+    output_path= Path(Path(__file__).parent.parent.__str__(), "ckg_data/mix_chunk3/mix_chunk3")
+    process_triple(file_path.__str__(),output_path.__str__())

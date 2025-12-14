@@ -1,20 +1,23 @@
+import sys
+from pathlib import Path
+sys.path.append(Path(__file__).parent.parent.__str__())
 import os
 import json
 from _utils import split_string_by_multi_markers,_handle_single_entity_extraction,\
     _handle_single_relationship_extraction,clean_str,pack_user_ass_to_openai_messages
-import sys
-sys.path.append("/data/zyz/LeanRAG")
 from tools.utils import InstanceManager,write_jsonl
 from collections import Counter, defaultdict
 from prompt import PROMPTS
 import asyncio
 import re
 import copy
+from tools.utils import read_jsonl, write_jsonl
+
 
 
 def get_chunk(chunk_file):
     doc_name=os.path.basename(chunk_file).rsplit(".",1)[0]
-    with open(chunk_file, "r") as f:
+    with open(chunk_file, "r", encoding="utf-8") as f:
             corpus=json.load(f)
     chunks = {item["hash_code"]: item["text"] for item in corpus}
     return chunks
@@ -92,10 +95,10 @@ async def triple_extraction(chunks,use_llm_func,output_dir):
                 maybe_edges[(if_relation["src_id"], if_relation["tgt_id"])].append(
                     if_relation
                 )
-        already_processed += 1                                      # already processed chunks
+        already_processed += 1       # already processed chunks
         already_entities += len(maybe_nodes)
         already_relations += len(maybe_edges)
-        now_ticks = PROMPTS["process_tickers"][                     # for visualization
+        now_ticks = PROMPTS["process_tickers"][          # for visualization
             already_processed % len(PROMPTS["process_tickers"])
         ]
         print(
@@ -216,23 +219,32 @@ async def triple_extraction(chunks,use_llm_func,output_dir):
     
     
     
-    
-    
 if __name__ == "__main__":
-    MODEL = "qwen3_14b"
-    num=4
+    MODEL = "qwen3:32b-fp16"
+    num=1
     instanceManager=InstanceManager(
-        url="http://xxx",
-        ports=[8001 for i in range(num)],
+        url="http://10.0.101.102",
+        ports=[11434 for i in range(num)],
         gpus=[i for i in range(num)],
         generate_model=MODEL,
         startup_delay=30
     )
-    use_llm=instanceManager.generate_text_asy
-    chunk_file="/data/zyz/LeanRAG/datasets/mix/mix_chunk.json"
+    use_llm = instanceManager.generate_text_asy
+    chunk_file="ge_data/mix_chunk3/mix_chunk3.json"
     chunks=get_chunk(chunk_file)
-    output_dir="ttt"
-    loop = asyncio.get_event_loop()
+    output_dir="ge_data/mix_chunk3"
+
+    if sys.version_info < (3, 10):
+        loop = asyncio.get_event_loop()
+    else:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+
+        asyncio.set_event_loop(loop)
+
+
     loop.run_until_complete(triple_extraction(chunks, use_llm,output_dir))
 
     

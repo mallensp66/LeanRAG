@@ -1,8 +1,8 @@
+import sys
+from pathlib import Path
+sys.path.append(Path(__file__).parent.parent.__str__())
 import json
 import os
-
-import sys
-sys.path.append("/data/zyz/LeanRAG")
 from tqdm import tqdm
 from prompt import PROMPTS
 import tiktoken
@@ -17,7 +17,7 @@ def summarize_entity(entity_name, description, summary_prompt, threshold, tokeni
         exact_prompt = summary_prompt.format(entity_name=entity_name, description=description)
         response = use_llm(exact_prompt)
         return entity_name, response
-    return entity_name, description  # 不需要摘要则返回原始 description
+    return entity_name, description  # If no summary is needed, return the original description.
 
 
 def truncate_data():
@@ -31,7 +31,7 @@ def truncate_data():
     entity_output_path="data/entity.jsonl"
     res=[]
     i=0
-    with open(relation_path,"r") as f:
+    with open(relation_path,"r", encoding="utf-8") as f:
         for uline in f:
                 line=json.loads(uline)
                 res.append(line)
@@ -42,7 +42,7 @@ def truncate_data():
     
     res=[]
     i=0
-    with open(entity_path,"r") as f:
+    with open(entity_path,"r", encoding="utf-8") as f:
         for uline in f:
                 line=json.loads(uline)
                 if "wtr20" in line['source_id']:
@@ -63,7 +63,7 @@ def deal_duplicate_entity(working_dir,output_path):
     e_dic={}
     r_dic={}
     summary_prompt=PROMPTS['summary_entities']
-    with open(entity_path,"r")as f:
+    with open(entity_path,"r", encoding="utf-8")as f:
         for xline in f:
             line=json.loads(xline)
             entity_name=str(line['entity_name']).replace("\"","")
@@ -107,7 +107,7 @@ def deal_duplicate_entity(working_dir,output_path):
 
 
     write_jsonl(all_entities,entity_output_path)
-    with open(relation_path,"r")as f:
+    with open(relation_path,"r", encoding="utf-8")as f:
         for xline in f:
             line=json.loads(xline)[0]
             src_tgt=str(line['src_id']).replace("\"","")
@@ -134,7 +134,7 @@ def deal_duplicate_entity(working_dir,output_path):
     write_jsonl(all_relations,relation_output_path)
 def process_triple(file_path,output_path):
     create_if_not_exist(output_path)
-    with open(file_path,"r") as f:
+    with open(file_path,"r", encoding="utf-8") as f:
         entities={}
         relations=[]
         for uline in f:
@@ -207,18 +207,18 @@ def process_triple(file_path,output_path):
     write_jsonl(res_entity,f"{output_path}/entity.jsonl")
         
 if __name__=="__main__":
-    MODEL = "qwen3_14b"
-    num=4
+    MODEL = "qwen3:32b-fp16"
+    num=1
     instanceManager=InstanceManager(
-        url="http://xxx",
-        ports=[8001 for i in range(num)],
+        url="http://10.0.101.102",
+        ports=[11434 for i in range(num)],
         gpus=[i for i in range(num)],
         generate_model=MODEL,
         startup_delay=30
     )
     use_llm=instanceManager.generate_text
-    working_dir="ttt"
-    output_path="ttt"
+    working_dir="ge_data/mix_chunk3"
+    output_path="ge_data/mix_chunk3"
     # deal_duplicate_entity()
     # truncate_data()
     deal_duplicate_entity(working_dir=working_dir,output_path=output_path)

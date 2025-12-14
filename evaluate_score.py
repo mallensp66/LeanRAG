@@ -1,3 +1,9 @@
+from concurrent.futures import ThreadPoolExecutor
+import time
+from openai import OpenAI
+import json
+
+
 def evaluate_item(i, query, answer, benchmark, tokenizer):
     DEEPSEEK_MODEL = "deepseek-v3-250324"
     DEEPSEEK_URL = "xxxx"
@@ -115,10 +121,10 @@ def evaluate_example(query_file,result_file,output_file,dataset):
                 f"JSON decoding error in file {query_file} at line {line_number}: {e}"
                 )
     queries = queries[:MAX_QUERIES]
-    with open(result_file, "r") as f:
+    with open(result_file, "r", encoding="utf-8") as f:
         answers = f.readlines()
     answers = [json.loads(i)["answer"] for i in answers][:MAX_QUERIES]
-    with open(f"datasets/{dataset}/{dataset}.jsonl", "r") as f:
+    with open(f"datasets/{dataset}/{dataset}.jsonl", "r", encoding="utf-8") as f:
         benchmarks=f.readlines()
     benchmarks=[json.loads(i)["answers"] for i in benchmarks][:MAX_QUERIES]
     
@@ -138,8 +144,8 @@ def evaluate_example(query_file,result_file,output_file,dataset):
             if evaluation is not None:
                 print(f"Successfully evaluated {i+1}/{len(queries)}")
 
-    # 只写入成功的结果
-    with jsonlines.open(output_file, mode="w") as writer:
+    # Write only the successful results
+    with jsonlines.open(output_file, mode="w", encoding="utf-8") as writer:
         for eval_item in results:
             if eval_item is not None:
                 writer.write(eval_item)

@@ -1,57 +1,60 @@
-## LLM参数
+## LLM parameters
 llm_conf:
   ## LLM url
-  llm_url: "http://10.140.37.22"
+  llm_url: "http://10.0.101.102" # "http://localhost" # "http://172.31.224.1" #
+
+  ## LLM port
+  llm_port: 11434 # 1234 # 
 
   ## LLM key
-  llm_api_key: "EMPTY"
+  llm_api_key: "lm-studio"
 
-  ## LLM模型
-  # llm_model: "Qwen2.5-7B" # ollama模型: "qwen2.5:72b"
-  llm_model: "qwen3_32b" 
+  ## LLM model
+  # llm_model: "Qwen2.5-7B" # ollama model: "qwen2.5:72b"
+  llm_model: "qwen3:32b-fp16" # "openai/gpt-oss-20b" # "qwen3-14b" #
 
-  ## 是否使用ollama本地部署模型
+  ## for a local model with ollama
   use_ollama: False
 
-  ## 是否使用vllm本地部署模型
-  use_vllm: True
+  ## Should we use the VLLM local deployment model?
+  use_vllm: False
 
-  ## 在线调用LLM最大尝试次数
-  max_error: 3
+  ## Maximum number of attempts to call LLM online
+  max_error: 5
 
-  ## 使用ollama部署模型使用的GPU数量
+  ## Number of GPUs used to deploy models using ollama
   gpu_nums: 1
 
-## 任务参数
+## Task parameters
 task_conf:
-  ## 生成图谱的层数
+  ## Number of layers in the generated map
   level_num: 2
 
-  ## 头实体匹配多进程数量（-1表示使用所有CPU核心）
-  num_processes_match: 16
+  ## The header entity matches the number of processes (-1 indicates that all CPU cores are used).
+  num_processes_match: 1 # 16
 
-  ## 推理多进程数量（-1表示使用所有CPU核心）
-  num_processes_infer: 16
+  ## Inference multiprocessing quantity (-1 indicates using all CPU cores): 1 #16
+  num_processes_infer: 1
 
-  ## 是否跳过三元组抽取
+  ## Skip triplet extraction?
   skip_extract_triple: False
 
-  ## 是否为triple抽取描述
+  ## Is it a triple extraction description?
   extract_desc: True
 
-  ## 头实体路径
-  # 115机器上Dbpedia英文实体清单：/cpfs04/shared/ADLab/datasets/H_RAG/dbpedia_entities_clean_valid.txt
-  # 115机器上Wiki中文实体清单：/data/H-RAG/data/triple_data_by_pl/triple_data/wiki_CN_entity_52w_0326.txt
+  ## Header entity path
+  # Dbpedia English Entity List on 115 Machine：/cpfs04/shared/ADLab/datasets/H_RAG/dbpedia_entities_clean_valid.txt
+  # List of Chinese Entities on Wiki on Machine 115：/data/H-RAG/data/triple_data_by_pl/triple_data/wiki_CN_entity_52w_0326.txt
   pedia_entity_path: CommonKG/config/dbpedia_entities_clean_valid.txt # data/wtr_entity_test.txt
   # pedia_entity_path: data/wtr_entity_test.txt # data/wtr_entity_test.txt
 
-  ## 待检索语料路径（可以是单一文件或者处理后的文件夹）
+  ## The path to the corpus to be retrieved (can be a single file or a processed folder).
   # corpus_path: /data/H-RAG/processed_wtr_reports_jsons_0318/wtr03_e_by_page_block.jsonl
-  # 示例data：data/wtr03_e_by_page_block-head_20.jsonl or data/wtr03_e_by_page_block-head_100.jsonl
-  corpus_path: datasets/mix/mix_chunk.json
+  # Example data：data/wtr03_e_by_page_block-head_20.jsonl or data/wtr03_e_by_page_block-head_100.jsonl
+  corpus_path: ckg_data/mix_chunk3/mix_chunk3.json
 
-  ## 输出结果目录
-  output_dir: ckg_data
+  ## Output result directory
+  output_dir: ckg_data/mix_chunk3
 
-  ## 参考的开源三元组文件路径
+  ## Referenced open-source triple file path
   ref_kg_path: CommonKG/config/triple_ref_test.txt

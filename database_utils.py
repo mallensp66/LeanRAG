@@ -6,7 +6,7 @@ import pymysql
 from collections import Counter
 def build_vector_search(data,working_dir):
    
-    milvus_client = MilvusClient(uri=f"{working_dir}/milvus_demo.db")
+    milvus_client = MilvusClient(uri="http://localhost:19530")
     index_params = milvus_client.prepare_index_params()
 
     index_params.add_index(
@@ -67,9 +67,9 @@ def build_vector_search(data,working_dir):
 
 def search_vector_search(working_dir,query,topk=10,level_mode=2):
     '''
-    level_mode: 0: 原始节点
-                1: 聚合节点
-                2: 所有节点
+    level_mode: 0: original node
+                1: aggregation node
+                2: all nodes
     '''
     if level_mode==0:
         filter_filed=" level == 0 "
@@ -82,10 +82,10 @@ def search_vector_search(working_dir,query,topk=10,level_mode=2):
     dataset=os.path.basename(working_dir)
     if os.path.exists(f"{working_dir}/milvus_demo.db"):
         print(f"{working_dir}milvus_demo.db already exists, using it")
-        milvus_client = MilvusClient(uri=f"{working_dir}/milvus_demo.db")
+        milvus_client = MilvusClient(uri="{working_dir}/milvus_demo.db")
     else:
         print("milvus_demo.db not found, using default")
-        milvus_client = MilvusClient(uri=f"/data/zyz/trag_ds/exp/ds_hire_cs20_top20_chunk5/{dataset}/milvus_demo.db")
+        milvus_client = MilvusClient(uri="http://localhost:19530")
     collection_name = "entity_collection"
     # query_embedding = emb_text(query)
     search_results = milvus_client.search(
@@ -100,19 +100,21 @@ def search_vector_search(working_dir,query,topk=10,level_mode=2):
     extract_results=[(i['entity']['entity_name'],i["entity"]["parent"],i["entity"]["description"],i["entity"]["source_id"])for i in search_results[0]]
     # print(extract_results)
     return extract_results
+
 def create_db_table_mysql(working_dir):
-    con = pymysql.connect(host='localhost',port=4321, user='root',
-                      passwd='123',  charset='utf8mb4')
+    # mySQL Service name: MySQL80
+    con = pymysql.connect(host='localhost',port=3306, user='root',
+                      password='1234',  charset='utf8mb4')
     cur=con.cursor()
     dbname=os.path.basename(working_dir)
     
     cur.execute(f"drop database if exists {dbname};")
     cur.execute(f"create database {dbname} character set utf8mb4;")
     
-    # 使用库
+    # Use library
     cur.execute(f"use {dbname};")
     cur.execute("drop table if exists entities;")
-    # 建表
+    # Create table
     cur.execute("create table entities\
         (entity_name varchar(500), description varchar(10000),source_id varchar(1000),\
             degree int,parent varchar(1000),level int ,INDEX en(entity_name))character set utf8mb4 COLLATE utf8mb4_unicode_ci;")
@@ -132,12 +134,12 @@ def create_db_table_mysql(working_dir):
     
 def insert_data_to_mysql(working_dir):
     dbname=os.path.basename(working_dir)
-    db = pymysql.connect(host='localhost',port=4321, user='root',
-                      passwd='123',database=dbname,  charset='utf8mb4')
+    db = pymysql.connect(host='localhost',port=3306, user='root',
+                      password='1234',database=dbname,  charset='utf8mb4')
     cursor = db.cursor()
     
     entity_path=os.path.join(working_dir,"all_entities.json")
-    with open(entity_path,"r")as f:
+    with open(entity_path,"r", encoding="utf-8")as f:
         val=[]
         for level,entitys in enumerate(f):
             local_entity=json.loads(entitys)
@@ -164,18 +166,18 @@ def insert_data_to_mysql(working_dir):
                 val.append((entity_name,description,source_id,degree,parent,level))
         sql = "INSERT INTO entities(entity_name, description, source_id, degree,parent,level) VALUES (%s,%s,%s,%s,%s,%s)"
         try:
-        # 执行sql语句
+        # Execute sql statement
             cursor.executemany(sql,tuple(val))
-            # 提交到数据库执行
+            # Submit to database for execution
             db.commit()
         except Exception as e:
-            # 发生错误时回滚
+            # Rollback when an error occurs
             db.rollback()
             print(e)
             print("insert entities error")
          
-    relation_path=os.path.join(working_dir,"generate_relations.json")
-    with open(relation_path,"r")as f:
+    relation_path=os.path.join(working_dir,"generate_relations.jsonl")
+    with open(relation_path,"r", encoding="utf-8")as f:
         val=[]
         for relation_l in f:
             relation=json.loads(relation_l)
@@ -187,18 +189,18 @@ def insert_data_to_mysql(working_dir):
             val.append((src_tgt,tgt_src,description,weight,level))
         sql = "INSERT INTO relations(src_tgt, tgt_src, description,  weight,level) VALUES (%s,%s,%s,%s,%s)"
         try:
-        # 执行sql语句
+        # Execute sql statement
             cursor.executemany(sql,tuple(val))
-            # 提交到数据库执行
+            # Submit to database for execution
             db.commit()
         except Exception as e:
-            # 发生错误时回滚
+            # Rollback when an error occurs
             db.rollback()
             print(e)
             print("insert relations error")
         
-    community_path=os.path.join(working_dir,"community.json")
-    with open(community_path,"r")as f:
+    community_path=os.path.join(working_dir,"community.jsonl")
+    with open(community_path,"r", encoding="utf-8")as f:
         val=[]
         for community_l in f:
             community=json.loads(community_l)
@@ -209,18 +211,20 @@ def insert_data_to_mysql(working_dir):
             val.append((title,summary,findings))
         sql = "INSERT INTO communities(entity_name, entity_description,  findings ) VALUES (%s,%s,%s)"
         try:
-        # 执行sql语句
+        # Execute sql statement
             cursor.executemany(sql,tuple(val))
-            # 提交到数据库执行
+            # Submit to database for execution
             db.commit()
         except Exception as e:
-            # 发生错误时回滚
+            # Rollback when an error occurs
             db.rollback()
             print(e)
             print("insert communities error")
+
+
 def find_tree_root(working_dir,entity):
-    db = pymysql.connect(host='localhost',port=4321, user='root',
-                      passwd='123',  charset='utf8mb4')
+    db = pymysql.connect(host='localhost',port=3306, user='root',
+                      password='1234',  charset='utf8mb4')
     dbname=os.path.basename(working_dir)
     res=[entity]
     cursor = db.cursor()
@@ -247,8 +251,8 @@ def find_tree_root(working_dir,entity):
     return res
 
 def find_path(entity1,entity2,working_dir,level,depth=5):
-    db = pymysql.connect(host='localhost',port=4321, user='root',
-                      passwd='123',  charset='utf8mb4')
+    db = pymysql.connect(host='localhost',port=3306, user='root',
+                      password='1234',  charset='utf8mb4')
     db_name=os.path.basename(working_dir)
     cursor = db.cursor()
 
@@ -289,7 +293,7 @@ def find_path(entity1,entity2,working_dir,level,depth=5):
     result = cursor.fetchone()
 
     if result:
-            return result[0].split('|')  # 返回节点列表
+            return result[0].split('|')  # Return node list
     else:
         return None
 
@@ -307,8 +311,8 @@ def search_nodes_link(entity1,entity2,working_dir,level=0):
     #     return None
     # else:
     #     return ret[0]
-    db = pymysql.connect(host='localhost',port=4321, user='root',
-                      passwd='123',  charset='utf8mb4')
+    db = pymysql.connect(host='localhost',port=3306, user='root',
+                      password='1234',  charset='utf8mb4')
     cursor = db.cursor()
     db_name=os.path.basename(working_dir)
     sql=f"select * from {db_name}.relations where src_tgt=%s and tgt_src=%s "
@@ -322,9 +326,10 @@ def search_nodes_link(entity1,entity2,working_dir,level=0):
         return None
     else:
         return ret[0]
+    
 def search_chunks(working_dir,entity_set):
-    db = pymysql.connect(host='localhost',port=4321, user='root',
-                      passwd='123',  charset='utf8mb4')
+    db = pymysql.connect(host='localhost',port=3306, user='root',
+                      password='1234',  charset='utf8mb4')
     res=[]
     db_name=os.path.basename(working_dir)
     cursor = db.cursor()
@@ -336,9 +341,10 @@ def search_chunks(working_dir,entity_set):
         ret=cursor.fetchall()
         res.append(ret[0])
     return res
+
 def search_nodes(entity_set,working_dir):
-    db = pymysql.connect(host='localhost',port=4321, user='root',
-                      passwd='123',  charset='utf8mb4')
+    db = pymysql.connect(host='localhost',port=3306, user='root',
+                      password='1234',  charset='utf8mb4')
     res=[]
     db_name=os.path.basename(working_dir)
     cursor = db.cursor()
@@ -348,6 +354,7 @@ def search_nodes(entity_set,working_dir):
         ret=cursor.fetchall()
         res.append(ret[0])
     return res
+
 def get_text_units(working_dir,chunks_set,chunks_file,k=5):
     db_name=os.path.basename(working_dir)
     chunks_list=[]
@@ -359,7 +366,7 @@ def get_text_units(working_dir,chunks_set,chunks_file,k=5):
         chunks_list+=temp_chunks
     counter = Counter(chunks_list)
 
-    # 筛选出出现多次的元素
+    # Filter out elements that appear multiple times
     # duplicates = [item for item, count in counter.items() if count > 2]
     duplicates = [item for item, _ in sorted(
     [(item, count) for item, count in counter.items() if count > 1],
@@ -386,9 +393,13 @@ def get_text_units(working_dir,chunks_set,chunks_file,k=5):
     return text_units
     
 def search_community(entity_name,working_dir):
-    db = pymysql.connect(host='localhost',port=4321, user='root',
-                      passwd='123',  charset='utf8mb4')
     db_name=os.path.basename(working_dir)
+    db = pymysql.connect(host='localhost',
+                         user='root',
+                         password='1234',
+                         database=db_name,
+                         port=3306,
+                        charset='utf8mb4')
     cursor = db.cursor()
     sql=f"select * from {db_name}.communities where entity_name=%s"
     cursor.execute(sql,(entity_name,))
@@ -398,16 +409,18 @@ def search_community(entity_name,working_dir):
     else:
         return ""
             # return ret[0]
+
+
 def insert_origin_relations(working_dir):
     dbname=os.path.basename(working_dir)
-    db = pymysql.connect(host='localhost',port=4321, user='root',
-                      passwd='123',database=dbname,  charset='utf8mb4')
+    db = pymysql.connect(host='localhost',port=3306, user='root',
+                      password='1234',database=dbname,  charset='utf8mb4')
     cursor = db.cursor()
     # relation_path=os.path.join(f"datasets/{dbname}","relation.jsonl")
     # relation_path=os.path.join(f"/data/zyz/reproduce/HiRAG/eval/datasets/{dbname}/test")
     relation_path=os.path.join(f"hi_ex/{dbname}","relation.jsonl")
     # relation_path=os.path.join(f"32b/{dbname}","relation.jsonl")
-    with open(relation_path,"r")as f:
+    with open(relation_path,"r", encoding="utf-8")as f:
         val=[]
         for relation_l in f:
             relation=json.loads(relation_l)
@@ -422,15 +435,17 @@ def insert_origin_relations(working_dir):
             val.append((src_tgt,tgt_src,description,weight,level))
         sql = "INSERT INTO relations(src_tgt, tgt_src, description,  weight,level) VALUES (%s,%s,%s,%s,%s)"
         try:
-        # 执行sql语句
+        # Execute sql statement
             cursor.executemany(sql,tuple(val))
-            # 提交到数据库执行
+            # Submit to database for execution
             db.commit()
         except Exception as e:
-            # 发生错误时回滚
+            # Rollback when an error occurs
             db.rollback()
             print(e)
             print("insert relations error")
+
+
 if __name__ == "__main__":
     working_dir='exp/compare_hirag_opt1_commonkg_32b/mix'
     # build_vector_search()

@@ -4,7 +4,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 import sys
 
-# 如果需要颜色支持，建议使用 colorama 以确保在 Windows 上也能正确显示颜色
+# If color support is required, it is recommended to use colorama to ensure that colors are displayed correctly also on Windows
 try:
     import colorama
     from colorama import Fore, Style
@@ -15,12 +15,12 @@ except ImportError:
 
 class ColoredFormatter(logging.Formatter):
     """
-    自定义格式化器，根据日志级别为日志消息添加颜色。
-    INFO: 绿色
-    WARNING: 黄色
-    ERROR: 红色
+    Custom formatter to add color to log messages based on log level.
+    INFO: green
+    WARNING: yellow
+    ERROR: red
     """
-    # 定义颜色映射
+    # Define colormap
     COLOR_MAP = {
         logging.DEBUG: Fore.CYAN if COLORAMA_AVAILABLE else '',
         logging.INFO: Fore.GREEN if COLORAMA_AVAILABLE else '',
@@ -40,30 +40,30 @@ class ColoredFormatter(logging.Formatter):
 
 def setup_logger(logger_name, level=logging.INFO):
     '''
-    初始化并返回一个日志记录器。
+    Initialize and return a logger.
 
-    该函数确保所有日志记录器共享相同的处理程序，包括：
-    - 基于时间戳的日志文件
-    - latest.log 文件
-    - 控制台输出（带颜色）
+    This function ensures that all loggers share the same handler, including:
+    - Timestamp based log files
+    - latest.log file
+    - Console output (with color)
 
-    参数:
-    - logger_name: 日志记录器的名称
-    - level: 日志级别，默认为 logging.INFO
+    parameter:
+    - logger_name: name of the logger
+    - level: log level, default is logging.INFO
 
-    返回:
-    - logger: 配置好的日志记录器
+    return:
+    - logger: configured logger
     '''
     logger = logging.getLogger(logger_name)
     logger.setLevel(level)
-    logger.propagate = True  # 确保日志传递到根记录器
+    logger.propagate = True  # Make sure logs are delivered to the root logger
 
-    # 检查根记录器是否已配置处理程序
+    # Check if the root logger has a handler configured
     if not logging.getLogger().hasHandlers():
-        # 获取主脚本的路径
+        # Get the path to the main script
         main_script = sys.argv[0]
         if not main_script:
-            # 在某些环境下（如交互式解释器），sys.argv[0] 可能为空
+            # In some environments (such as interactive interpreters), sys.argv[0] may be empty
             main_script_dir = os.getcwd()
             main_script_name = 'unknown'
         else:
@@ -71,24 +71,24 @@ def setup_logger(logger_name, level=logging.INFO):
             main_script_dir = os.path.dirname(main_script_path)
             main_script_name = os.path.splitext(os.path.basename(main_script_path))[0]
 
-        # 创建日志目录：{主脚本目录}/logs/{主脚本名称}/
+        # Create log directory: {main script directory}/logs/{main script name}/
         log_dir = os.path.join('logs', main_script_name)
         os.makedirs(log_dir, exist_ok=True)
 
-        # 生成基于时间戳的日志文件名
+        # Generate log file names based on timestamp
         timestamp = time.strftime("%Y%m%d_%H%M%S", time.localtime())
         timestamp_log_file = os.path.join(log_dir, f'{timestamp}.log')
 
-        # 定义 latest.log 文件路径
+        # Define latest.log file path
         latest_log_file = os.path.join(log_dir, 'latest.log')
 
-        # 定义日志格式
+        # Define log format
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-        # 定义带颜色的日志格式化器
+        # Define a colored log formatter
         colored_formatter = ColoredFormatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-        # 处理程序1：基于时间戳的日志文件（带轮转）
+        # Handler 1: Timestamp based log file (with rotation)
         timestamp_handler = RotatingFileHandler(
             timestamp_log_file,
             maxBytes=1000*1024*1024,  # 1000 MB
@@ -99,17 +99,17 @@ def setup_logger(logger_name, level=logging.INFO):
         timestamp_handler.setLevel(level)
         logging.getLogger().addHandler(timestamp_handler)
 
-        # 处理程序2：latest.log 文件（覆盖模式）
+        # Handler 2: latest.log file (overwrite mode)
         latest_handler = logging.FileHandler(
             latest_log_file,
-            mode='w',                # 覆盖模式，每次运行覆盖文件
+            mode='w',                # Overwrite mode, overwrite files every time you run
             encoding='utf-8'
         )
         latest_handler.setFormatter(formatter)
         latest_handler.setLevel(level)
         logging.getLogger().addHandler(latest_handler)
 
-        # 处理程序3：控制台输出（带颜色）
+        # Handler 3: Console output (with color)
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(colored_formatter)
         console_handler.setLevel(level)
@@ -120,11 +120,11 @@ def setup_logger(logger_name, level=logging.INFO):
 
 class TqdmToLogger:
     '''
-    自定义 TqdmToLogger 类
-    用法示例
+    Custom TqdmToLogger class
+    Usage examples
     tqdm_out = TqdmToLogger(logger)
 
-    进度条的输出重定向到日志
+    Progress bar output redirected to log
     for step in tqdm(range(total_steps), desc="xxx", file=tqdm_out):
     '''
     def __init__(self, logger, level=logging.INFO):
@@ -133,7 +133,7 @@ class TqdmToLogger:
         self.buf = ''
 
     def write(self, buf):
-        # 去除多余的空白字符，记录非空的进度信息
+        # Remove extra whitespace characters and record non-empty progress information
         self.buf = buf.strip()
         if self.buf:
             self.logger.log(self.level, self.buf)
@@ -143,7 +143,7 @@ class TqdmToLogger:
 
 
 def test_setup_setup_logger():
-    # 使用方式
+    # Usage
     logger = setup_logger('tool_test')
     logger.info('This is a log info')
 

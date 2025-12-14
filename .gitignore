@@ -6,4 +6,5 @@ CommonKG/data
 visualize.py
 *.log
 ckg_data
+ge_data
 ttt

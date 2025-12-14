@@ -44,6 +44,7 @@ def check_test(entities):
         for item in layer:
             if item['parent'] not in e_l[index+1]:
                 print(item['entity_name'],item['parent'])
+
 def extract_first_complete_json(s: str):
     """Extract the first complete JSON object from the string using a stack to track braces."""
     stack = []
@@ -69,6 +70,7 @@ def extract_first_complete_json(s: str):
                         first_json_start = None
     logger.warning("No complete JSON object found in the input string.")
     return None
+
 def extract_json_from_cluster(s:str):
     import re
     s=s.replace('*', '')
@@ -77,7 +79,7 @@ def extract_json_from_cluster(s:str):
         r"Aggregate Entity Description:\s*(.+?)\n\nFindings:", s, re.DOTALL
     ).group(1).strip()
 
-    # 提取 findings
+    # Extract findings
     pattern = r"<summary_(\d+)>:\s*(.*?)\s*<explanation_\1>:\s*(.*?)(?=\n<summary_\d+>:|\Z)"
     matches = re.findall(pattern, s, re.DOTALL)
 
@@ -88,15 +90,16 @@ def extract_json_from_cluster(s:str):
             "explanation": explanation.strip().replace('\n', ' ')
         })
 
-    # 构造最终 JSON
+    # Construct the final JSON
     result = {
         "entity_name": entity_name,
         "entity_description": entity_description,
         "findings": findings
     }
 
-    # 输出 JSON 字符串（可选择写入文件）
+    # Output a JSON string (optional, write it to a file).
     return result
+
 def parse_value(value: str):
     """Convert a string value to its appropriate type (int, float, bool, None, or keep as string). Work as a more broad 'eval()'"""
     value = value.strip()
@@ -117,6 +120,7 @@ def parse_value(value: str):
         except ValueError:
             # If conversion fails, return the value as-is (likely a string)
             return value.strip('"')  # Remove surrounding quotes if they exist
+
 def extract_values_from_json(json_string, keys=["reasoning", "answer", "data"], allow_no_quotes=False):
     """Extract key values from a non-standard or malformed JSON string, handling nested objects."""
     extracted_values = {}
@@ -165,6 +169,7 @@ def encode_string_by_tiktoken(content: str, model_name: str = "gpt-4o"):
 # Set a random seed for reproducibility
 RANDOM_SEED = 224
 random.seed(RANDOM_SEED)
+
 def truncate_list_by_token_size(list_data: list, key: callable, max_token_size: int):
     """Truncate a list of data by token size"""
     if max_token_size <= 0:
@@ -289,6 +294,7 @@ def enclose_string_with_quotes(content: Any) -> str:
     content = str(content)
     content = content.strip().strip("'").strip('"')
     return f'"{content}"'
+
 def list_of_list_to_csv(data: list[list]):
     return "\n".join(
         [
@@ -296,6 +302,7 @@ def list_of_list_to_csv(data: list[list]):
             for data_d in data
         ]
     )
+
 def get_direct_relations(set1,set2,relations):
     results={k:v for k,v in relations.items() if (k[0]in set1 and k[1] in set2) or (k[0] in set2 and k[1] in set1)}
     return results
@@ -348,6 +355,7 @@ class ClusteringAlgorithm(ABC):
     @abstractmethod
     def perform_clustering(self, embeddings: np.ndarray, **kwargs) -> List[List[int]]:
         pass
+
 def _pack_single_community_describe(
     entitys,
     relations,
@@ -430,14 +438,17 @@ def process_cluster(
     data['children'] = [n['entity_name'] for n in cluster_nodes]
     data['source_id'] = "|".join(set([n['source_id'] for n in cluster_nodes]))
 
-    temp_node = {
-        'entity_name': data['entity_name'],
-        'description': data['entity_description'],
-        'source_id': data['source_id'],
-        'entity_type': "aggregate entity",
-        'degree': 1,
-        'vector': embeddings_func(data['entity_description']),
-    }
+    try:
+        temp_node = {
+            'entity_name': data['entity_name'],
+            'description': data['entity_description'],
+            'source_id': data['source_id'],
+            'entity_type': "aggregate entity",
+            'degree': 1,
+            'vector': embeddings_func(data['entity_description']),
+        }
+    except Exception as e:
+        logger.error(f"Error value mapping: {str(e)}")
 
 
     return {
@@ -445,6 +456,7 @@ def process_cluster(
         'temp_node': temp_node,
         'index':indices
     }
+
 def process_relation( 
     use_llm_func,community_report,maybe_edge,relations,generate_relations,\
      cluster_cluster_relation_prompt,layer,tokenizer,max_depth
@@ -473,7 +485,7 @@ def process_relation(
     # allowed_tokens=100000
     # allowed_tokens=1
     if tokens>allowed_tokens:
-        print(f"{tokens}大于{allowed_tokens}，进行llm生成\n{maybe_edge[0]}和{maybe_edge[1]} in processing")
+        print(f"{tokens}greater than{allowed_tokens}，Generate LLM\n{maybe_edge[0]}and{maybe_edge[1]} in processing")
         exact_prompt=cluster_cluster_relation_prompt.format(entity_a=maybe_edge[0],entity_b=maybe_edge[1],\
             entity_a_description=cluster1_description,entity_b_description=cluster2_description,\
                 relation_information="\n".join(relation_infromation),tokens=gene_tokens)
@@ -487,7 +499,7 @@ def process_relation(
                             'level':layer+1
                         }
     else:
-        print(f"{tokens}小于{allowed_tokens}，不进行llm生成")
+        print(f"{tokens}less than{allowed_tokens}，No LLM generation")
         temp_relations[maybe_edge]={
                             'src_tgt':maybe_edge[0],
                             'tgt_src':maybe_edge[1],
@@ -531,7 +543,7 @@ class Hierarchical_Clustering(ClusteringAlgorithm):
             logging.info(f"############ Layer[{layer}] Clustering ############")
             # Perform the clustering
             if  len(nodes) <= 2:
-                print("当前簇数小于2，停止聚类")
+                print("Stop clustering if the current number of clusters is less than 2.")
                 break
             clusters = perform_clustering(
                 embeddings, dim=reduction_dimension, threshold=cluster_threshold,cluster_size=cluster_size
@@ -554,7 +566,7 @@ class Hierarchical_Clustering(ClusteringAlgorithm):
             #     break
             # summarize
             if len(unique_clusters) <=4:
-                print(f"当前簇数小于5，停止聚类")
+                print(f"Stop clustering if the current number of clusters is less than 5.")
                 break
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = [
@@ -610,13 +622,13 @@ class Hierarchical_Clustering(ClusteringAlgorithm):
                     seen.add(entity_name)
                     unique_nodes.append(item)
             nodes = unique_nodes
-            for index,i in enumerate(unique_nodes): #再进行embedding时发现，有个元素的vector不是np而是list
+            for index,i in enumerate(unique_nodes): #During the embedding process, it was discovered that one element's vector was not an np vector but a list.
                 vec=i["vector"]
                 if type(vec)==list  or vec.shape!=(1,1024):
                     print(index)
                     unique_nodes[index]["vector"]=np.array(vec).reshape((1,1024))
             
-            embeddings = np.array([x["vector"] for x in unique_nodes]).squeeze() #为下一轮迭代做准备
+            embeddings = np.array([x["vector"] for x in unique_nodes]).squeeze() #Preparing for the next iteration
             all_nodes.append(nodes) 
             save_entities=copy.deepcopy(all_nodes)
             for layer in save_entities:
@@ -639,7 +651,7 @@ class Hierarchical_Clustering(ClusteringAlgorithm):
         if len(all_nodes[-1])!=1:
             temp_node={}
             cluster_nodes=all_nodes[-1]
-            cluster_intern_relation=get_direct_relations(cluster_nodes,cluster_nodes,generate_relations)#默认为顶层，从下层找关系就是在generate_relations中
+            cluster_intern_relation=get_direct_relations(cluster_nodes,cluster_nodes,generate_relations)#The default is the top level; finding relationships from lower levels is done in `generate_relations`.
             describe=_pack_single_community_describe(cluster_nodes,cluster_intern_relation)
             hint_prompt=community_report_prompt.format(input_text=describe)
             # response = use_llm_func(hint_prompt,**llm_extra_kwargs)

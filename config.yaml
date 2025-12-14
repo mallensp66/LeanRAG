@@ -1,17 +1,19 @@
 
 glm:
-  model: "bge_m3"
-  base_url: "http://10.140.37.43:8000/v1"
-  embedding_model: "bge_m3"
+  model: "bge-m3:567m"
+  api_key: "ollama"
+  base_url: "http://localhost:11434/v1"
+  embedding_model: "bge-m3:567m"
 
 deepseek:
 
   # model: "Qwen3-14b"
-  model: "qwen2.5"
+  # model: "qwen2.5"
   # model: "Qwen3-32b"
+  model: "qwen3:32b-fp16"
 
   api_key: "ollama"
-  base_url: "http://localhost:8001/v1"
+  base_url: "http://10.0.101.102:11434/v1"
 
 # Model Parameters
 model_params:

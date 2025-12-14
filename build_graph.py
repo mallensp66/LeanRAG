@@ -1,8 +1,10 @@
 import argparse
-from concurrent.futures import ProcessPoolExecutor,as_completed
+from concurrent.futures import ProcessPoolExecutor,as_completed,ThreadPoolExecutor
 from dataclasses import field
 import json
 import os
+from pathlib import Path
+
 import logging
 import numpy as np
 from openai import OpenAI
@@ -17,7 +19,7 @@ import requests
 import multiprocessing
 logger=logging.getLogger(__name__)
 
-with open('config.yaml', 'r') as file:
+with open('config.yaml', 'r', encoding="utf-8") as file:
     config = yaml.safe_load(file)
 MODEL = config['deepseek']['model']
 DEEPSEEK_API_KEY = config['deepseek']['api_key']
@@ -28,11 +30,11 @@ TOTAL_TOKEN_COST = 0
 TOTAL_API_CALL_COST = 0
 
 def get_common_rag_res(WORKING_DIR):
-    entity_path=f"{WORKING_DIR}/entity.jsonl"
-    relation_path=f"{WORKING_DIR}/relation.jsonl"
+    entity_path= Path(WORKING_DIR, "entity.jsonl").resolve() 
+    relation_path= Path(WORKING_DIR, "relation.jsonl").resolve().__str__() 
     # i=0
     e_dic={}
-    with open(entity_path,"r")as f:
+    with open(entity_path,"r", encoding='utf-8') as f:
         for xline in f:
             
             line=json.loads(xline)
@@ -56,7 +58,7 @@ def get_common_rag_res(WORKING_DIR):
     #             break
     # i=0
     r_dic={}
-    with open(relation_path,"r")as f:
+    with open(relation_path,"r", encoding='utf-8')as f:
         for xline in f:
             
             line=json.loads(xline)
@@ -82,7 +84,7 @@ def get_common_rag_res(WORKING_DIR):
     return e_dic,r_dic
 
 
-def embedding(texts: list[str]) -> np.ndarray: #vllm serve
+def embedding(texts: list[str]) -> np.ndarray: #ollama serve
     model_name = EMBEDDING_MODEL
     client = OpenAI(
         api_key=EMBEDDING_MODEL,
@@ -94,6 +96,7 @@ def embedding(texts: list[str]) -> np.ndarray: #vllm serve
     )
     final_embedding = [d.embedding for d in embedding.data]
     return np.array(final_embedding)
+
 def embedding_init(entities:list[dict])-> list[dict]: 
     texts=[truncate_text(i['description']) for i in entities]
     model_name = EMBEDDING_MODEL
@@ -109,14 +112,43 @@ def embedding_init(entities:list[dict])-> list[dict]:
     for i, entity in enumerate(entities):
         entity['vector'] = np.array(final_embedding[i])
     return entities
+
 tokenizer = tiktoken.get_encoding("cl100k_base")
+
 def truncate_text(text, max_tokens=4096):
     tokens = tokenizer.encode(text)
     if len(tokens) > max_tokens:
         tokens = tokens[:max_tokens]
     truncated_text = tokenizer.decode(tokens)
     return truncated_text
+
+# def embedding_data(entity_results):
+#     entities = [v for k, v in entity_results.items()]
+#     entity_with_embeddings=[]
+#     embeddings_batch_size = 64
+#     num_embeddings_batches = (len(entities) + embeddings_batch_size - 1) // embeddings_batch_size
+    
+#     batches = [
+#         entities[i * embeddings_batch_size : min((i + 1) * embeddings_batch_size, len(entities))]
+#         for i in range(num_embeddings_batches)
+#     ]
+
+#     with ProcessPoolExecutor(max_workers=8) as executor:
+#         futures = [executor.submit(embedding_init, batch) for batch in batches]
+#         for future in tqdm(as_completed(futures), total=len(futures)):
+#             result = future.result()
+#             entity_with_embeddings.extend(result)
+
+#     for i in entity_with_embeddings:
+#         entiy_name=i['entity_name']
+#         vector=i['vector']
+#         entity_results[entiy_name]['vector']=vector
+#     return entity_results
+
+# =========================================================================
+
 def embedding_data(entity_results):
+
     entities = [v for k, v in entity_results.items()]
     entity_with_embeddings=[]
     embeddings_batch_size = 64
@@ -127,21 +159,31 @@ def embedding_data(entity_results):
         for i in range(num_embeddings_batches)
     ]
 
-    with ProcessPoolExecutor(max_workers=8) as executor:
-        futures = [executor.submit(embedding_init, batch) for batch in batches]
-        for future in tqdm(as_completed(futures), total=len(futures)):
-            result = future.result()
-            entity_with_embeddings.extend(result)
+    max_workers = global_config['max_workers'] if global_config['max_workers'] != -1 else multiprocessing.cpu_count()
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Übermitteln Sie alle Aufgaben an den Thread-Pool.
+        futures = {executor.submit(embedding_init, batch): batch for batch in batches
+        }
+        
+        # Verwenden Sie tqdm, um den Verarbeitungsfortschritt anzuzeigen.
+        for future in tqdm(as_completed(futures), total=len(futures), desc="Generating embeddings..."):
+            try:
+                result = future.result()
+                entity_with_embeddings.extend(result)
+                    
+            except Exception as e:
+                logger.error(f"Error generating embeddings: {str(e)}")
+                continue
 
+                
     for i in entity_with_embeddings:
         entiy_name=i['entity_name']
         vector=i['vector']
         entity_results[entiy_name]['vector']=vector
     return entity_results
 
-
-
-    
+# =========================================================================
             
 def hierarchical_clustering(global_config):
     entity_results,relation_results=get_common_rag_res(global_config['working_dir'])
@@ -170,28 +212,29 @@ def hierarchical_clustering(global_config):
     save_community=[
     v for k, v in community.items()
 ]
-    write_jsonl(save_relation, f"{global_config['working_dir']}/generate_relations.json")
-    write_jsonl(save_community, f"{global_config['working_dir']}/community.json")
+    write_jsonl(save_relation, f"{global_config['working_dir']}/generate_relations.jsonl")
+    write_jsonl(save_community, f"{global_config['working_dir']}/community.jsonl")
     create_db_table_mysql(global_config['working_dir'])
     insert_data_to_mysql(global_config['working_dir'])
     
 if __name__=="__main__":
     try:
-        multiprocessing.set_start_method("spawn", force=True)  # 强制设置
+        multiprocessing.set_start_method("spawn", force=True)  # Mandatory setting
     except RuntimeError:
-        pass  # 已经设置过，忽略
+        pass  # Already set, ignore
     parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--path", type=str, default="/data/zyz/LeanRAG/ttt")
-    parser.add_argument("-n", "--num", type=int, default=2)
+    # parser.add_argument("-p", "--path", type=str, default="/data/zyz/LeanRAG/ttt")
+    parser.add_argument("-p", "--path", type=str, default=Path(Path(__file__).parent, "ge_data/mix_chunk3").resolve())
+    parser.add_argument("-n", "--num", type=int, default=1)
     args = parser.parse_args()
 
     WORKING_DIR = args.path
     num=args.num
     instanceManager=InstanceManager(
-        url="http://xxxx",
-        ports=[8001 for i in range(num)],
+        url="http://10.0.101.102",
+        ports=[11434 for i in range(num)],
         gpus=[i for i in range(num)],
-        generate_model="qwen3_32b",
+        generate_model="qwen3:32b-fp16",
         startup_delay=30
     )
     global_config={}

@@ -8,11 +8,12 @@ h11==0.16.0
 httpcore==1.0.9
 httpx==0.28.1
 idna==3.11
-jieba==0.42.1
+snownlp==0.12.3
 jiter==0.12.0
 joblib==1.5.2
 llvmlite==0.45.1
-milvus-lite==2.5.1
+pymilvus[milvus_lite]==2.6.3
+pymilvus[model]
 numba==0.62.1
 numpy==2.3.4
 openai==2.7.2
