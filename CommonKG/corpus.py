@@ -21,7 +21,7 @@ logger = setup_logger("corpus_batch")
 #         return match_words
 
 #     def auto_match(self, entities, lower_case=True):
-#         entities = list(set(entities)) ## 去重
+#         entities = list(set(entities)) ## Remove duplicates
 #         match_words = set()
 #         A = Automaton()
 #         for entity in entities:
