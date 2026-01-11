@@ -13,10 +13,14 @@ import re
 import copy
 from tools.utils import read_jsonl, write_jsonl
 
+import logging
+import yaml
+
+logger=logging.getLogger(__name__)
 
 
 def get_chunk(chunk_file):
-    doc_name=os.path.basename(chunk_file).rsplit(".",1)[0]
+    doc_name = os.path.basename(chunk_file).rsplit(".",1)[0]
     with open(chunk_file, "r", encoding="utf-8") as f:
             corpus=json.load(f)
     chunks = {item["hash_code"]: item["text"] for item in corpus}
@@ -220,23 +224,36 @@ async def triple_extraction(chunks,use_llm_func,output_dir):
     
     
 if __name__ == "__main__":
-    MODEL = "qwen3:32b-fp16"
-    URL = "http://10.0.101.102"
-    PORT = 11434
+    ## Read configuration file
+    conf_path = "config.yaml"  # "CommonKG/config/create_kg_conf_test.yaml"
+    with open(conf_path, "r", encoding="utf-8") as file:
+        args = yaml.safe_load(file)
+
+    logger.info(f"args:\n{args}\n")    
+
+    llm_url = args["llm_conf"]["llm_url"] # "http://10.0.101.102" # "http://localhost" # "http://172.31.224.1" #
+    llm_port = args["llm_conf"]["llm_port"] #  11434 # 1234 # 
+    llm_model = args["llm_conf"]["llm_model"]  ## Task parameters
+
     NUM=1
-    CHUNK_FILE="ge_data/mix_chunk3/mix_chunk3.json"
-    OUTPUT_DIR="ge_data/mix_chunk3"
+
+    working_dir= args["task_conf"]["output_dir"]  # Path(Path(__file__).parent.parent.__str__(), "ckg_data/mix_chunk3/mix_chunk3")
+    output_path= args["task_conf"]["output_dir"]  # Path(Path(__file__).parent.parent.__str__(), "ckg_data/mix_chunk3/mix_chunk3")
+
+    dataset_root = args["dataset"]["root"] 
+    dataset = args["dataset"]["dataset"]
+    CHUNK_TEXT_FILE=f"{dataset_root}/{dataset}_chunk.json" # "datasets/mix/mix_chunk.json"
 
     instanceManager=InstanceManager(
-        url=URL,
-        ports=[PORT for i in range(NUM)],
+        url=llm_url,
+        ports=[llm_port for i in range(NUM)],
         gpus=[i for i in range(NUM)],
-        generate_model=MODEL,
+        generate_model=llm_model,
         startup_delay=30
     )
     use_llm = instanceManager.generate_text_asy
 
-    chunks=get_chunk(CHUNK_FILE)
+    chunks = get_chunk(CHUNK_TEXT_FILE)
 
 
     if sys.version_info < (3, 10):
@@ -250,6 +267,6 @@ if __name__ == "__main__":
         asyncio.set_event_loop(loop)
 
 
-    loop.run_until_complete(triple_extraction(chunks, use_llm,OUTPUT_DIR))
+    loop.run_until_complete(triple_extraction(chunks, use_llm, output_path))
 
     

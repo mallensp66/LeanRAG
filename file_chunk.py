@@ -13,16 +13,6 @@ MAX_TOKEN_SIZE = config['file_chunker']['max_token_size'] # =1024
 OVERLAP_TOKEN_SIZE = config['file_chunker']['overlap_token_size'] # =128
 
 
-MODEL = config['llm_provider']['model']
-LLM_PROVIDER_API_KEY = config['llm_provider']['api_key']
-LLM_PROVIDER_URL = config['llm_provider']['base_url']
-LLM_PROVIDER_PORT = config['llm_provider0']['base_port']
-EMBEDDING_MODEL = config['embedding_provider']['model']
-EMBEDDING_URL = config['embedding_provider']['base_url']
-TOTAL_TOKEN_COST = 0
-TOTAL_API_CALL_COST = 0
-
-
 def compute_mdhash_id(content, prefix: str = ""):
     return prefix + md5(content.encode()).hexdigest()
 

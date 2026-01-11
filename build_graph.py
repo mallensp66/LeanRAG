@@ -27,8 +27,8 @@ LLM_PROVIDER_URL = config['llm_provider']['base_url']
 LLM_PROVIDER_PORT = config['llm_provider0']['base_port']
 EMBEDDING_MODEL = config['embedding_provider']['model']
 EMBEDDING_URL = config['embedding_provider']['base_url']
-TOTAL_TOKEN_COST = 0
-TOTAL_API_CALL_COST = 0
+WORKING_DIR= config["task_conf"]["output_dir"] 
+
 
 def get_common_rag_res(WORKING_DIR):
     entity_path= Path(WORKING_DIR, "entity.jsonl").resolve() 
@@ -195,13 +195,7 @@ def hierarchical_clustering(global_config):
     insert_data_to_mysql(global_config['working_dir'])
     
 if __name__=="__main__":
-    # LLM_MODEL = "qwen3:32b-fp16"
-    # LLM_PROVIDER_URL = "http://10.0.101.102"
-    # LLM_PROVIDER_PORT = 11434
     NUM=1
-    WORKING_DIR="ge_data/mix_chunk3"
-    OUTPUT_PATH="ge_data/mix_chunk3"
-
 
     try:
         multiprocessing.set_start_method("spawn", force=True)  # Mandatory setting
@@ -223,11 +217,11 @@ if __name__=="__main__":
         startup_delay=30
     )
     global_config={}
-    global_config['max_workers']=num*4
-    global_config['working_dir']=WORKING_DIR
-    global_config['use_llm_func']=instanceManager.generate_text
-    global_config['embeddings_func']=embedding
-    global_config["special_community_report_llm_kwargs"]=field(
+    global_config['max_workers'] = num*4
+    global_config['working_dir'] = WORKING_DIR
+    global_config['use_llm_func'] = instanceManager.generate_text
+    global_config['embeddings_func'] = embedding
+    global_config["special_community_report_llm_kwargs"] = field(
         default_factory=lambda: {"response_format": {"type": "json_object"}}
     )
     hierarchical_clustering(global_config)

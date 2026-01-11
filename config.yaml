@@ -1,6 +1,6 @@
 
 dataset:
-  root: "ckg_data/mix_chunk3"
+  root: "data/mix"
   dataset: "mix"
 
 file_chunker:
@@ -30,3 +30,63 @@ model_params:
   glm_embedding_dim: 1024
   max_token_size: 8192
 
+## LLM parameters for CommonKG
+llm_conf:
+  ## LLM url
+  llm_url: "http://10.0.101.102" # "http://localhost" # "http://172.31.224.1" #
+
+  ## LLM port
+  llm_port: 11434 # 1234 # 
+
+  ## LLM key
+  llm_api_key: "ollama"
+
+  ## LLM model
+  # llm_model: "Qwen2.5-7B" # ollama model: "qwen2.5:72b"
+  llm_model: "qwen3:32b-fp16" # "openai/gpt-oss-20b" # "qwen3-14b" #
+
+  ## for a local model with ollama
+  use_ollama: False
+
+  ## Should we use the VLLM local deployment model?
+  use_vllm: False
+
+  ## Maximum number of attempts to call LLM online
+  max_error: 5
+
+  ## Number of GPUs used to deploy models using ollama
+  gpu_nums: 1
+
+## Task parameters for CommonKG
+task_conf:
+  ## Number of layers in the generated map
+  level_num: 2
+
+  ## The header entity matches the number of processes (-1 indicates that all CPU cores are used).
+  num_processes_match: 1 # 16
+
+  ## Inference multiprocessing quantity (-1 indicates using all CPU cores): 1 #16
+  num_processes_infer: 1
+
+  ## Skip triplet extraction?
+  skip_extract_triple: False
+
+  ## Is it a triple extraction description?
+  extract_desc: True
+
+  ## Header entity path
+  # Dbpedia English Entity List on 115 Machine：/cpfs04/shared/ADLab/datasets/H_RAG/dbpedia_entities_clean_valid.txt
+  # List of Chinese Entities on Wiki on Machine 115：/data/H-RAG/data/triple_data_by_pl/triple_data/wiki_CN_entity_52w_0326.txt
+  pedia_entity_path: CommonKG/config/dbpedia_entities_clean_valid.txt # data/wtr_entity_test.txt
+  # pedia_entity_path: data/wtr_entity_test.txt # data/wtr_entity_test.txt
+
+  ## The path to the corpus to be retrieved (can be a single file or a processed folder).
+  # corpus_path: /data/H-RAG/processed_wtr_reports_jsons_0318/wtr03_e_by_page_block.jsonl
+  # Example data：data/wtr03_e_by_page_block-head_20.jsonl or data/wtr03_e_by_page_block-head_100.jsonl
+  corpus_path: data/mix/mix_chunk3.json
+
+  ## Output result directory
+  output_dir: data/mix
+
+  ## Referenced open-source triple file path
+  ref_kg_path: CommonKG/config/triple_ref_test.txt

@@ -10,11 +10,15 @@ import sys
 from tools.utils import read_jsonl, write_jsonl, create_if_not_exist,InstanceManager
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import tiktoken
+import logging
+import yaml
+
+logger=logging.getLogger(__name__)
 
 
 threshold=50
 
-def summarize_entity(entity_name, description, summary_prompt, threshold, tokenizer):
+def summarize_entity(entity_name, description, summary_prompt, threshold, tokenizer, use_llm):
     tokens = len(tokenizer.encode(description))
     if tokens > threshold:
         exact_prompt = summary_prompt.format(entity_name=entity_name, description=description)
@@ -24,7 +28,7 @@ def summarize_entity(entity_name, description, summary_prompt, threshold, tokeni
 
 
 
-def process_triple(file_path,output_path):
+def process_triple(file_path,output_path, use_llm):
     create_if_not_exist(output_path)
     triple_path=os.path.join(file_path,f"new_triples_{os.path.basename(file_path)}_descriptions.jsonl")
     
@@ -94,7 +98,7 @@ def process_triple(file_path,output_path):
             res_entity.append(v)
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = {
-            executor.submit(summarize_entity, k, desc, summary_prompt, threshold, tokenizer): k
+            executor.submit(summarize_entity, k, desc, summary_prompt, threshold, tokenizer, use_llm): k
             for k, desc in to_summarize
         }
         for future in tqdm(as_completed(futures), total=len(futures), desc="Summarizing descriptions"):
@@ -103,18 +107,33 @@ def process_triple(file_path,output_path):
             res_entity.append(entities[k])
 
     write_jsonl(res_entity,f"{output_path}/entity.jsonl")
-        
-if __name__=="__main__":
-    MODEL = "qwen3:32b-fp16"
+
+
+def main():
+    ## Read configuration file
+    conf_path = "config.yaml"  # "CommonKG/config/create_kg_conf_test.yaml"
+    with open(conf_path, "r", encoding="utf-8") as file:
+        args = yaml.safe_load(file)
+
+    logger.info(f"args:\n{args}\n")    
+
+    llm_url = args["llm_conf"]["llm_url"] # "http://10.0.101.102" # "http://localhost" # "http://172.31.224.1" #
+    llm_port = args["llm_conf"]["llm_port"] #  11434 # 1234 # 
+    llm_model = args["llm_conf"]["llm_model"]  ## Task parameters
+
     num=1
     instanceManager=InstanceManager(
-        url="http://10.0.101.102",
-        ports=[11434 for i in range(num)],
+        url=llm_url,
+        ports=[llm_port for i in range(num)],
         gpus=[i for i in range(num)],
-        generate_model=MODEL,
+        generate_model=llm_model,
         startup_delay=30
     )
-    use_llm=instanceManager.generate_text
-    file_path= Path(Path(__file__).parent.parent.__str__(), "ckg_data/mix_chunk3/mix_chunk3")
-    output_path= Path(Path(__file__).parent.parent.__str__(), "ckg_data/mix_chunk3/mix_chunk3")
-    process_triple(file_path.__str__(),output_path.__str__())
+    use_llm = instanceManager.generate_text
+
+    file_path= args["task_conf"]["output_dir"]  # Path(Path(__file__).parent.parent.__str__(), "ckg_data/mix_chunk3/mix_chunk3")
+    output_path= args["task_conf"]["output_dir"]  # Path(Path(__file__).parent.parent.__str__(), "ckg_data/mix_chunk3/mix_chunk3")
+    process_triple(file_path.__str__(),output_path.__str__(), use_llm)
+
+if __name__=="__main__":
+    main()

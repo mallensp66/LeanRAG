@@ -10,8 +10,15 @@ from tools.utils import read_jsonl, write_jsonl, create_if_not_exist,InstanceMan
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import tiktoken
+
+import logging
+import yaml
+
+logger=logging.getLogger(__name__)
+
 threshold=50
-def summarize_entity(entity_name, description, summary_prompt, threshold, tokenizer):
+
+def summarize_entity(entity_name, description, summary_prompt, threshold, tokenizer, use_llm):
     tokens = len(tokenizer.encode(description))
     if tokens > threshold:
         exact_prompt = summary_prompt.format(entity_name=entity_name, description=description)
@@ -52,7 +59,7 @@ def truncate_data():
                         break
     write_jsonl(res,entity_output_path)
 
-def deal_duplicate_entity(working_dir,output_path):
+def deal_duplicate_entity(working_dir,output_path, use_llm):
     relation_path=f"{working_dir}/relation.jsonl"
     relation_output_path=f"{output_path}/relation.jsonl"
     entity_path=f"{working_dir}/entity.jsonl"
@@ -97,7 +104,7 @@ def deal_duplicate_entity(working_dir,output_path):
             all_entities.append(v)
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = {
-            executor.submit(summarize_entity, k, desc, summary_prompt, threshold, tokenizer): k
+            executor.submit(summarize_entity, k, desc, summary_prompt, threshold, tokenizer, use_llm): k
             for k, desc in to_summarize
         }
         for future in tqdm(as_completed(futures), total=len(futures), desc="Summarizing descriptions"):
@@ -132,7 +139,7 @@ def deal_duplicate_entity(working_dir,output_path):
             # e_dic[src_tgt]['degree']+=1
             # e_dic[tgt_src]['degree']+=1
     write_jsonl(all_relations,relation_output_path)
-def process_triple(file_path,output_path):
+def process_triple(file_path, output_path, use_llm):
     create_if_not_exist(output_path)
     with open(file_path,"r", encoding="utf-8") as f:
         entities={}
@@ -196,7 +203,7 @@ def process_triple(file_path,output_path):
             res_entity.append(v)
     with ThreadPoolExecutor(max_workers=10) as executor:
         futures = {
-            executor.submit(summarize_entity, k, desc, summary_prompt, threshold, tokenizer): k
+            executor.submit(summarize_entity, k, desc, summary_prompt, threshold, tokenizer, use_llm): k
             for k, desc in to_summarize
         }
         for future in tqdm(as_completed(futures), total=len(futures), desc="Summarizing descriptions"):
@@ -205,27 +212,44 @@ def process_triple(file_path,output_path):
             res_entity.append(entities[k])
 
     write_jsonl(res_entity,f"{output_path}/entity.jsonl")
-        
-if __name__=="__main__":
-    MODEL = "qwen3:32b-fp16"
-    URL = "http://10.0.101.102"
-    PORT = 11434
+
+
+def main():
+    ## Read configuration file
+    conf_path = "config.yaml"  # "CommonKG/config/create_kg_conf_test.yaml"
+    with open(conf_path, "r", encoding="utf-8") as file:
+        args = yaml.safe_load(file)
+
+    logger.info(f"args:\n{args}\n")    
+
+    llm_url = args["llm_conf"]["llm_url"] # "http://10.0.101.102" # "http://localhost" # "http://172.31.224.1" #
+    llm_port = args["llm_conf"]["llm_port"] #  11434 # 1234 # 
+    llm_model = args["llm_conf"]["llm_model"]  ## Task parameters
+
     NUM=1
-    WORKING_DIR="ge_data/mix_chunk3"
-    OUTPUT_PATH="ge_data/mix_chunk3"
+
+    working_dir= args["task_conf"]["output_dir"]  # Path(Path(__file__).parent.parent.__str__(), "ckg_data/mix_chunk3/mix_chunk3")
+    output_path= args["task_conf"]["output_dir"]  # Path(Path(__file__).parent.parent.__str__(), "ckg_data/mix_chunk3/mix_chunk3")
 
 
     instanceManager=InstanceManager(
-        url=URL,
-        ports=[PORT for i in range(NUM)],
+        url=llm_url,
+        ports=[llm_port for i in range(NUM)],
         gpus=[i for i in range(NUM)],
-        generate_model=MODEL,
+        generate_model=llm_model,
         startup_delay=30
     )
     use_llm=instanceManager.generate_text
     # deal_duplicate_entity()
     # truncate_data()
-    deal_duplicate_entity(working_dir=WORKING_DIR,output_path=OUTPUT_PATH)
+    deal_duplicate_entity(working_dir=working_dir,output_path=output_path, use_llm=use_llm)
     # file_path="create_kg/data/processed_wtr_reports-kg-test/wtr03_e_by_page_block-head_20/new_triples_wtr03_e_by_page_block-head_20_descriptions.jsonl"
     # output_path="ttt"
-    # process_triple(file_path,output_path)
+    # process_triple(file_path,output_path, use_llm)
+
+
+
+
+
+if __name__=="__main__":
+    main()

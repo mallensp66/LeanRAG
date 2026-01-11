@@ -1,4 +1,4 @@
-## LLM parameters
+## LLM parameters for CommonKG
 llm_conf:
   ## LLM url
   llm_url: "http://10.0.101.102" # "http://localhost" # "http://172.31.224.1" #
@@ -25,7 +25,7 @@ llm_conf:
   ## Number of GPUs used to deploy models using ollama
   gpu_nums: 1
 
-## Task parameters
+## Task parameters for CommonKG
 task_conf:
   ## Number of layers in the generated map
   level_num: 2

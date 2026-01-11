@@ -361,7 +361,7 @@ def _process_paragraph_for_matching(args_tuple):
 
 def main():
     ## Read configuration file
-    conf_path = "CommonKG/config/create_kg_conf_test.yaml"
+    conf_path = "config.yaml"  # "CommonKG/config/create_kg_conf_test.yaml"
     with open(conf_path, "r", encoding="utf-8") as file:
         args = yaml.safe_load(file)
 
@@ -375,7 +375,9 @@ def main():
 
     
     # Input path processing (supports files/folders)
-    input_path = task_conf["corpus_path"]
+    dataset_root = args["dataset"]["root"]
+    dataset = args["dataset"]["dataset"]
+    input_path = f"{dataset_root}/{dataset}_chunk.json"   # task_conf["corpus_path"]  
     output_dir = task_conf["output_dir"]
     if os.path.isfile(input_path):
         files_to_process = [input_path]
