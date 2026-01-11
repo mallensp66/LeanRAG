@@ -208,20 +208,24 @@ def process_triple(file_path,output_path):
         
 if __name__=="__main__":
     MODEL = "qwen3:32b-fp16"
-    num=1
+    URL = "http://10.0.101.102"
+    PORT = 11434
+    NUM=1
+    WORKING_DIR="ge_data/mix_chunk3"
+    OUTPUT_PATH="ge_data/mix_chunk3"
+
+
     instanceManager=InstanceManager(
-        url="http://10.0.101.102",
-        ports=[11434 for i in range(num)],
-        gpus=[i for i in range(num)],
+        url=URL,
+        ports=[PORT for i in range(NUM)],
+        gpus=[i for i in range(NUM)],
         generate_model=MODEL,
         startup_delay=30
     )
     use_llm=instanceManager.generate_text
-    working_dir="ge_data/mix_chunk3"
-    output_path="ge_data/mix_chunk3"
     # deal_duplicate_entity()
     # truncate_data()
-    deal_duplicate_entity(working_dir=working_dir,output_path=output_path)
+    deal_duplicate_entity(working_dir=WORKING_DIR,output_path=OUTPUT_PATH)
     # file_path="create_kg/data/processed_wtr_reports-kg-test/wtr03_e_by_page_block-head_20/new_triples_wtr03_e_by_page_block-head_20_descriptions.jsonl"
     # output_path="ttt"
     # process_triple(file_path,output_path)
