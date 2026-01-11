@@ -44,7 +44,7 @@ class llm_client():
         self.response = completion.choices[0].message.content
 
 class TripleScorer:
-    def __init__(self, triple_path:str, triple_soure_path:str , output_path:str = None):
+    def __init__(self, triple_path:str, triple_soure_path:str , output_path:str = None, url:str= None, port:str= None, api_key: str= None, model: str= None):
         """
         Initialize classification
         """
@@ -56,7 +56,7 @@ class TripleScorer:
 
         self.prompt = prompt_kg_judge.score_triple_prompt
         
-        llm_client_args = {"llm_model":"qwen3:32b-fp16", "llm_url":"http://10.0.101.102:11434/v1", "llm_api_key":"lm-studio"}
+        llm_client_args = {"llm_model":model, "llm_url":url, "llm_api_key":api_key}
         self.client = llm_client(llm_client_args)
 
         self.output_path = output_path if output_path else triple_path.replace(".jsonl", ".scores.jsonl")
@@ -201,12 +201,18 @@ class TripleScorer:
 
 if __name__ == "__main__":
     
+    base_url = "http://10.0.101.102"
+    port = "11434"
+    api_key = "ollama"
+    model = "qwen3:32b-fp16"
+    url = f"{base_url}:{port}/v1"
+
     # test file
     triple_source_path = "data/wtr03_e_by_page_block-head_100.jsonl"
     triple_path = "data/processed_wtr_reports-kg-vllm-test_qwen2.5-7B/wtr03_e_by_page_block-head_100-all_dbpedia_head_entity/new_triples_wtr03_e_by_page_block-head_100.jsonl"
     triple_score_path = triple_path.replace(".jsonl", "-score.jsonl")
 
-    triple_scorer = TripleScorer(triple_path=triple_path, triple_soure_path=triple_source_path, output_path=triple_score_path)
+    triple_scorer = TripleScorer(triple_path=triple_path, triple_soure_path=triple_source_path, output_path=triple_score_path, url=url, port=port, api_key=api_key, model=model)
 
     triple_scorer.run()
 

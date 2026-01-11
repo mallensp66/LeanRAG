@@ -1,20 +1,29 @@
 
-glm:
+dataset:
+  root: "ckg_data/mix_chunk3"
+  dataset: "mix"
+
+file_chunker:
+  max_token_size: 1024
+  overlap_token_size: 128
+
+
+embedding_provider:
   model: "bge-m3:567m"
   api_key: "ollama"
-  base_url: "http://localhost:11434/v1"
-  embedding_model: "bge-m3:567m"
+  base_url: "http://localhost"  # "http://localhost:11434/v1"
+  base_port: "11434"
 
-deepseek:
+llm_provider:
 
   # model: "Qwen3-14b"
   # model: "qwen2.5"
   # model: "Qwen3-32b"
   model: "qwen3:32b-fp16"
-
   api_key: "ollama"
-  base_url: "http://10.0.101.102:11434/v1"
-
+  base_url: "http://10.0.101.102"  # "http://localhost:11434/v1"
+  base_port: "11434"
+  
 # Model Parameters
 model_params:
   openai_embedding_dim: 1536

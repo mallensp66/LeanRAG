@@ -221,18 +221,23 @@ async def triple_extraction(chunks,use_llm_func,output_dir):
     
 if __name__ == "__main__":
     MODEL = "qwen3:32b-fp16"
-    num=1
+    URL = "http://10.0.101.102"
+    PORT = 11434
+    NUM=1
+    CHUNK_FILE="ge_data/mix_chunk3/mix_chunk3.json"
+    OUTPUT_DIR="ge_data/mix_chunk3"
+
     instanceManager=InstanceManager(
-        url="http://10.0.101.102",
-        ports=[11434 for i in range(num)],
-        gpus=[i for i in range(num)],
+        url=URL,
+        ports=[PORT for i in range(NUM)],
+        gpus=[i for i in range(NUM)],
         generate_model=MODEL,
         startup_delay=30
     )
     use_llm = instanceManager.generate_text_asy
-    chunk_file="ge_data/mix_chunk3/mix_chunk3.json"
-    chunks=get_chunk(chunk_file)
-    output_dir="ge_data/mix_chunk3"
+
+    chunks=get_chunk(CHUNK_FILE)
+
 
     if sys.version_info < (3, 10):
         loop = asyncio.get_event_loop()
@@ -245,6 +250,6 @@ if __name__ == "__main__":
         asyncio.set_event_loop(loop)
 
 
-    loop.run_until_complete(triple_extraction(chunks, use_llm,output_dir))
+    loop.run_until_complete(triple_extraction(chunks, use_llm,OUTPUT_DIR))
 
     

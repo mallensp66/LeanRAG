@@ -21,11 +21,12 @@ logger=logging.getLogger(__name__)
 
 with open('config.yaml', 'r', encoding="utf-8") as file:
     config = yaml.safe_load(file)
-MODEL = config['deepseek']['model']
-DEEPSEEK_API_KEY = config['deepseek']['api_key']
-DEEPSEEK_URL = config['deepseek']['base_url']
-EMBEDDING_MODEL = config['glm']['model']
-EMBEDDING_URL = config['glm']['base_url']
+LLM_MODEL = config['llm_provider']['model']
+LLM_PROVIDER_API_KEY = config['llm_provider']['api_key']
+LLM_PROVIDER_URL = config['llm_provider']['base_url']
+LLM_PROVIDER_PORT = config['llm_provider0']['base_port']
+EMBEDDING_MODEL = config['embedding_provider']['model']
+EMBEDDING_URL = config['embedding_provider']['base_url']
 TOTAL_TOKEN_COST = 0
 TOTAL_API_CALL_COST = 0
 
@@ -122,30 +123,6 @@ def truncate_text(text, max_tokens=4096):
     truncated_text = tokenizer.decode(tokens)
     return truncated_text
 
-# def embedding_data(entity_results):
-#     entities = [v for k, v in entity_results.items()]
-#     entity_with_embeddings=[]
-#     embeddings_batch_size = 64
-#     num_embeddings_batches = (len(entities) + embeddings_batch_size - 1) // embeddings_batch_size
-    
-#     batches = [
-#         entities[i * embeddings_batch_size : min((i + 1) * embeddings_batch_size, len(entities))]
-#         for i in range(num_embeddings_batches)
-#     ]
-
-#     with ProcessPoolExecutor(max_workers=8) as executor:
-#         futures = [executor.submit(embedding_init, batch) for batch in batches]
-#         for future in tqdm(as_completed(futures), total=len(futures)):
-#             result = future.result()
-#             entity_with_embeddings.extend(result)
-
-#     for i in entity_with_embeddings:
-#         entiy_name=i['entity_name']
-#         vector=i['vector']
-#         entity_results[entiy_name]['vector']=vector
-#     return entity_results
-
-# =========================================================================
 
 def embedding_data(entity_results):
 
@@ -218,23 +195,31 @@ def hierarchical_clustering(global_config):
     insert_data_to_mysql(global_config['working_dir'])
     
 if __name__=="__main__":
+    # LLM_MODEL = "qwen3:32b-fp16"
+    # LLM_PROVIDER_URL = "http://10.0.101.102"
+    # LLM_PROVIDER_PORT = 11434
+    NUM=1
+    WORKING_DIR="ge_data/mix_chunk3"
+    OUTPUT_PATH="ge_data/mix_chunk3"
+
+
     try:
         multiprocessing.set_start_method("spawn", force=True)  # Mandatory setting
     except RuntimeError:
         pass  # Already set, ignore
     parser = argparse.ArgumentParser()
     # parser.add_argument("-p", "--path", type=str, default="/data/zyz/LeanRAG/ttt")
-    parser.add_argument("-p", "--path", type=str, default=Path(Path(__file__).parent, "ge_data/mix_chunk3").resolve())
+    # parser.add_argument("-p", "--path", type=str, default=Path(Path(__file__).parent, "ge_data/mix_chunk3").resolve())
     parser.add_argument("-n", "--num", type=int, default=1)
     args = parser.parse_args()
 
-    WORKING_DIR = args.path
+    #WORKING_DIR = args.path
     num=args.num
     instanceManager=InstanceManager(
-        url="http://10.0.101.102",
-        ports=[11434 for i in range(num)],
+        url=LLM_PROVIDER_URL,
+        ports=[LLM_PROVIDER_PORT for i in range(num)],
         gpus=[i for i in range(num)],
-        generate_model="qwen3:32b-fp16",
+        generate_model=LLM_MODEL,
         startup_delay=30
     )
     global_config={}

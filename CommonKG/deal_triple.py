@@ -10,7 +10,10 @@ import sys
 from tools.utils import read_jsonl, write_jsonl, create_if_not_exist,InstanceManager
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import tiktoken
+
+
 threshold=50
+
 def summarize_entity(entity_name, description, summary_prompt, threshold, tokenizer):
     tokens = len(tokenizer.encode(description))
     if tokens > threshold:

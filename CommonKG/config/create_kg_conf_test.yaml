@@ -7,7 +7,7 @@ llm_conf:
   llm_port: 11434 # 1234 # 
 
   ## LLM key
-  llm_api_key: "lm-studio"
+  llm_api_key: "ollama"
 
   ## LLM model
   # llm_model: "Qwen2.5-7B" # ollama model: "qwen2.5:72b"

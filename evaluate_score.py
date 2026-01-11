@@ -5,9 +5,9 @@ import json
 
 
 def evaluate_item(i, query, answer, benchmark, tokenizer):
-    DEEPSEEK_MODEL = "deepseek-v3-250324"
-    DEEPSEEK_URL = "xxxx"
-    client = OpenAI(api_key='xxxx',base_url=DEEPSEEK_URL)
+    LLM_PROVIDER_MODEL = "deepseek-v3-250324"
+    LLM_PROVIDER_URL = "xxxx"
+    client = OpenAI(api_key='xxxx',base_url=LLM_PROVIDER_URL)
     sys_prompt="""
         ---Role---
         You are an expert tasked with evaluating answer to the question based on four criteria: **Comprehensiveness**, **Diversity**, **Directness** and **Empowerment**.
@@ -80,7 +80,7 @@ def evaluate_item(i, query, answer, benchmark, tokenizer):
     for attempt in range(max_retries):
         try:
             response = client.chat.completions.create(
-                model=DEEPSEEK_MODEL,
+                model=LLM_PROVIDER_MODEL,
                 messages=messages,
                 temperature=0.0,
                 extra_body={"chat_template_kwargs": {"enable_thinking": False}}
@@ -97,9 +97,9 @@ def evaluate_item(i, query, answer, benchmark, tokenizer):
                 return i, None, cur_token_cost
 def evaluate_example(query_file,result_file,output_file,dataset):
     total_token_cost = 0
-    DEEPSEEK_MODEL = "xxxx"
-    DEEPSEEK_URL = "xxxx"
-    client = OpenAI(api_key='xxx',base_url=DEEPSEEK_URL)
+    LLM_PROVIDER_MODEL = "xxxx"
+    LLM_PROVIDER_URL = "xxxx"
+    client = OpenAI(api_key='xxx',base_url=LLM_PROVIDER_URL)
     
     queries = []
     with open(query_file, "r", encoding="utf-8") as infile:

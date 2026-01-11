@@ -20,13 +20,19 @@ from itertools import combinations
 logger=logging.getLogger(__name__)
 with open('config.yaml', 'r', encoding="utf-8") as file:
     config = yaml.safe_load(file)
-MODEL = config['deepseek']['model']
-DEEPSEEK_API_KEY = config['deepseek']['api_key']
-DEEPSEEK_URL = config['deepseek']['base_url']
-EMBEDDING_MODEL = config['glm']['model']
-EMBEDDING_URL = config['glm']['base_url']
+MODEL = config['llm_provider']['model']
+LLM_PROVIDER_API_KEY = config['llm_provider']['api_key']
+LLM_PROVIDER_URL = config['llm_provider']['base_url']
+LLM_PROVIDER_PORT = config['llm_provider0']['base_port']
+EMBEDDING_MODEL = config['embedding_provider']['model']
+EMBEDDING_URL = config['embedding_provider']['base_url']
 TOTAL_TOKEN_COST = 0
 TOTAL_API_CALL_COST = 0
+
+DATASET_ROOT = config['dataset']['root'] # ="ckg_data/mix_chunk3"
+DATASET = config['dataset']['dataset'] # ='mix'
+
+
 
 def embedding(texts: list[str]) -> np.ndarray:
     model_name = EMBEDDING_MODEL
@@ -166,18 +172,18 @@ if __name__=="__main__":
     db = pymysql.connect(host='localhost', user='root',port=3306,
                       password='1234',  charset='utf8mb4')
     global_config={}
-    WORKING_DIR = f"/ckg_data/mix_chunk3/mix_chunk3"
-    global_config['chunks_file']="ckg_data/mix_chunk3/mix_chunk3/mix_chunk3.json"
+    WORKING_DIR = f"/{DATASET_ROOT}/mix_chunk3"
+    global_config['chunks_file']=f"{DATASET_ROOT}/mix_chunk3/mix_chunk3.json"
     global_config['embeddings_func']=embedding
     global_config['working_dir']=WORKING_DIR
     global_config['topk']=2
     global_config['level_mode']=1
     num=1
     instanceManager=InstanceManager(
-        url="http://localhost",
-        ports=[11434 for i in range(num)],
+        url=LLM_PROVIDER_URL,
+        ports=[LLM_PROVIDER_PORT for i in range(num)],
         gpus=[i for i in range(num)],
-        generate_model="qwen3:32b-fp16",
+        generate_model=MODEL,
         startup_delay=30
     )
     
