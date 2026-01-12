@@ -169,8 +169,17 @@ def query_graph(global_config,db,query):
 
 
 if __name__=="__main__":
-    db = pymysql.connect(host='localhost', user='root',port=3306,
-                      password='1234',  charset='utf8mb4')
+    ## Read configuration file
+    conf_path = "config.yaml" 
+    with open(conf_path, "r", encoding="utf-8") as file:
+        args = yaml.safe_load(file)
+    host = args['mysql']['host']
+    user = args['mysql']['user']
+    port = args['mysql']['port']
+    password = args['mysql']['password']
+    charset = args['mysql']['charset']
+
+    db = pymysql.connect(host=host, user=user, port=port, password=password, charset=charset)
     global_config={}
     WORKING_DIR = f"/{DATASET_ROOT}/mix_chunk3"
     global_config['chunks_file']=f"{DATASET_ROOT}/mix_chunk3/mix_chunk3.json"

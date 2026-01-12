@@ -7,7 +7,7 @@ from hashlib import md5
 logger=logging.getLogger(__name__)
 with open('config.yaml', 'r', encoding="utf-8") as file:
     config = yaml.safe_load(file)
-DATASET_ROOT = config['dataset']['root'] # ="ckg_data/mix_chunk3"
+DATASET_ROOT = config['dataset']['root'] # ="data/mix"
 DATASET = config['dataset']['dataset'] # ='mix'
 MAX_TOKEN_SIZE = config['file_chunker']['max_token_size'] # =1024
 OVERLAP_TOKEN_SIZE = config['file_chunker']['overlap_token_size'] # =128

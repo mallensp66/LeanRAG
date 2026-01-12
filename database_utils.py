@@ -4,9 +4,27 @@ import numpy as np
 from pymilvus  import MilvusClient
 import pymysql
 from collections import Counter
+import yaml
+
+
+## Read configuration file
+conf_path = "config.yaml" 
+with open(conf_path, "r", encoding="utf-8") as file:
+    args = yaml.safe_load(file)
+HOST = args['mysql']['host']
+USER = args['mysql']['user']
+PORT = args['mysql']['port']
+PASSWORD = args['mysql']['password']
+CHARSET = args['mysql']['charset']
+
+MILVUS_HOST = args['milvus']['host']
+MILVUS_PORT = args['milvus']['port']
+
+
+
 def build_vector_search(data,working_dir):
    
-    milvus_client = MilvusClient(uri="http://localhost:19530")
+    milvus_client = MilvusClient(uri=f"{MILVUS_HOST}:{MILVUS_PORT}")
     index_params = milvus_client.prepare_index_params()
 
     index_params.add_index(
@@ -85,7 +103,7 @@ def search_vector_search(working_dir,query,topk=10,level_mode=2):
         milvus_client = MilvusClient(uri="{working_dir}/milvus_demo.db")
     else:
         print("milvus_demo.db not found, using default")
-        milvus_client = MilvusClient(uri="http://localhost:19530")
+        milvus_client = MilvusClient(uri=f"{MILVUS_HOST}:{MILVUS_PORT}")
     collection_name = "entity_collection"
     # query_embedding = emb_text(query)
     search_results = milvus_client.search(
@@ -103,8 +121,7 @@ def search_vector_search(working_dir,query,topk=10,level_mode=2):
 
 def create_db_table_mysql(working_dir):
     # mySQL Service name: MySQL80
-    con = pymysql.connect(host='localhost',port=3306, user='root',
-                      password='1234',  charset='utf8mb4')
+    con = pymysql.connect(host=HOST, user=USER, port=PORT, password=PASSWORD, charset=CHARSET)
     cur=con.cursor()
     dbname=os.path.basename(working_dir)
     
@@ -134,8 +151,7 @@ def create_db_table_mysql(working_dir):
     
 def insert_data_to_mysql(working_dir):
     dbname=os.path.basename(working_dir)
-    db = pymysql.connect(host='localhost',port=3306, user='root',
-                      password='1234',database=dbname,  charset='utf8mb4')
+    db = pymysql.connect(host=HOST, user=USER, port=PORT, password=PASSWORD, charset=CHARSET)
     cursor = db.cursor()
     
     entity_path=os.path.join(working_dir,"all_entities.json")
@@ -223,8 +239,7 @@ def insert_data_to_mysql(working_dir):
 
 
 def find_tree_root(working_dir,entity):
-    db = pymysql.connect(host='localhost',port=3306, user='root',
-                      password='1234',  charset='utf8mb4')
+    db = pymysql.connect(host=HOST, user=USER, port=PORT, password=PASSWORD, charset=CHARSET)
     dbname=os.path.basename(working_dir)
     res=[entity]
     cursor = db.cursor()
@@ -251,8 +266,7 @@ def find_tree_root(working_dir,entity):
     return res
 
 def find_path(entity1,entity2,working_dir,level,depth=5):
-    db = pymysql.connect(host='localhost',port=3306, user='root',
-                      password='1234',  charset='utf8mb4')
+    db = pymysql.connect(host=HOST, user=USER, port=PORT, password=PASSWORD, charset=CHARSET)
     db_name=os.path.basename(working_dir)
     cursor = db.cursor()
 
@@ -311,8 +325,7 @@ def search_nodes_link(entity1,entity2,working_dir,level=0):
     #     return None
     # else:
     #     return ret[0]
-    db = pymysql.connect(host='localhost',port=3306, user='root',
-                      password='1234',  charset='utf8mb4')
+    db = pymysql.connect(host=HOST, user=USER, port=PORT, password=PASSWORD, charset=CHARSET)
     cursor = db.cursor()
     db_name=os.path.basename(working_dir)
     sql=f"select * from {db_name}.relations where src_tgt=%s and tgt_src=%s "
@@ -328,8 +341,7 @@ def search_nodes_link(entity1,entity2,working_dir,level=0):
         return ret[0]
     
 def search_chunks(working_dir,entity_set):
-    db = pymysql.connect(host='localhost',port=3306, user='root',
-                      password='1234',  charset='utf8mb4')
+    db = pymysql.connect(host=HOST, user=USER, port=PORT, password=PASSWORD, charset=CHARSET)
     res=[]
     db_name=os.path.basename(working_dir)
     cursor = db.cursor()
@@ -343,8 +355,7 @@ def search_chunks(working_dir,entity_set):
     return res
 
 def search_nodes(entity_set,working_dir):
-    db = pymysql.connect(host='localhost',port=3306, user='root',
-                      password='1234',  charset='utf8mb4')
+    db = pymysql.connect(host=HOST, user=USER, port=PORT, password=PASSWORD, charset=CHARSET)
     res=[]
     db_name=os.path.basename(working_dir)
     cursor = db.cursor()
@@ -394,12 +405,7 @@ def get_text_units(working_dir,chunks_set,chunks_file,k=5):
     
 def search_community(entity_name,working_dir):
     db_name=os.path.basename(working_dir)
-    db = pymysql.connect(host='localhost',
-                         user='root',
-                         password='1234',
-                         database=db_name,
-                         port=3306,
-                        charset='utf8mb4')
+    db = pymysql.connect(host=HOST, user=USER, port=PORT, password=PASSWORD, charset=CHARSET)
     cursor = db.cursor()
     sql=f"select * from {db_name}.communities where entity_name=%s"
     cursor.execute(sql,(entity_name,))
@@ -413,8 +419,7 @@ def search_community(entity_name,working_dir):
 
 def insert_origin_relations(working_dir):
     dbname=os.path.basename(working_dir)
-    db = pymysql.connect(host='localhost',port=3306, user='root',
-                      password='1234',database=dbname,  charset='utf8mb4')
+    db = pymysql.connect(host=HOST, user=USER, port=PORT, password=PASSWORD, charset=CHARSET)
     cursor = db.cursor()
     # relation_path=os.path.join(f"datasets/{dbname}","relation.jsonl")
     # relation_path=os.path.join(f"/data/zyz/reproduce/HiRAG/eval/datasets/{dbname}/test")

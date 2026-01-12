@@ -90,3 +90,17 @@ task_conf:
 
   ## Referenced open-source triple file path
   ref_kg_path: CommonKG/config/triple_ref_test.txt
+
+
+# DB Parameters
+mysql:
+  host: 'localhost'
+  user: 'root'
+  port: 3306
+  password: '1234'
+  charset: 'utf8mb4'
+
+# Vector Database
+milvus:
+  host: 'http://localhost'
+  port: '19530'

@@ -237,10 +237,10 @@ if __name__ == "__main__":
 
     NUM=1
 
-    working_dir= args["task_conf"]["output_dir"]  # Path(Path(__file__).parent.parent.__str__(), "ckg_data/mix_chunk3/mix_chunk3")
-    output_path= args["task_conf"]["output_dir"]  # Path(Path(__file__).parent.parent.__str__(), "ckg_data/mix_chunk3/mix_chunk3")
+    working_dir= args["task_conf"]["output_dir"]
+    output_path= args["task_conf"]["output_dir"]
 
-    dataset_root = args["dataset"]["root"] 
+    dataset_root = args["dataset"]["root"]
     dataset = args["dataset"]["dataset"]
     CHUNK_TEXT_FILE=f"{dataset_root}/{dataset}_chunk.json" # "datasets/mix/mix_chunk.json"
 

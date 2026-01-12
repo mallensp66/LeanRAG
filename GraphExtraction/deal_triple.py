@@ -228,8 +228,8 @@ def main():
 
     NUM=1
 
-    working_dir= args["task_conf"]["output_dir"]  # Path(Path(__file__).parent.parent.__str__(), "ckg_data/mix_chunk3/mix_chunk3")
-    output_path= args["task_conf"]["output_dir"]  # Path(Path(__file__).parent.parent.__str__(), "ckg_data/mix_chunk3/mix_chunk3")
+    working_dir= args["task_conf"]["output_dir"]
+    output_path= args["task_conf"]["output_dir"]
 
 
     instanceManager=InstanceManager(

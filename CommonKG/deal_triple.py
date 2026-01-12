@@ -131,8 +131,8 @@ def main():
     )
     use_llm = instanceManager.generate_text
 
-    file_path= args["task_conf"]["output_dir"]  # Path(Path(__file__).parent.parent.__str__(), "ckg_data/mix_chunk3/mix_chunk3")
-    output_path= args["task_conf"]["output_dir"]  # Path(Path(__file__).parent.parent.__str__(), "ckg_data/mix_chunk3/mix_chunk3")
+    file_path= args["task_conf"]["output_dir"]
+    output_path= args["task_conf"]["output_dir"]
     process_triple(file_path.__str__(),output_path.__str__(), use_llm)
 
 if __name__=="__main__":

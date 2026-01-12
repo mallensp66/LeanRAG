@@ -51,10 +51,10 @@ task_conf:
   ## The path to the corpus to be retrieved (can be a single file or a processed folder).
   # corpus_path: /data/H-RAG/processed_wtr_reports_jsons_0318/wtr03_e_by_page_block.jsonl
   # Example data：data/wtr03_e_by_page_block-head_20.jsonl or data/wtr03_e_by_page_block-head_100.jsonl
-  corpus_path: ckg_data/mix_chunk3/mix_chunk3.json
+  corpus_path: data/mix_chunk3/mix_chunk3.json
 
   ## Output result directory
-  output_dir: ckg_data/mix_chunk3
+  output_dir: data/mix_chunk3
 
   ## Referenced open-source triple file path
   ref_kg_path: CommonKG/config/triple_ref_test.txt
