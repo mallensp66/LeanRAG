@@ -48,7 +48,7 @@ class InstanceManager:
         response = requests.post(
             f"{base_url}/api/generate",
             json={"model": model, "prompt": prompt, "temperature": temperature},
-            timeout=30  # Set a timeout to avoid infinite waiting.
+            #timeout=30  # Set a timeout to avoid infinite waiting.
         )
         response.raise_for_status()
         return response
@@ -95,7 +95,7 @@ class LLM_Processor:
                 "response_format":{"type": "json_object"},
                 "chat_template_kwargs": {"enable_thinking": False}
             },
-            timeout=600 # 120
+            #timeout=600 # 120
         )
                
             else:
@@ -109,7 +109,7 @@ class LLM_Processor:
                 "max_tokens" : max_tokens,
                 "chat_template_kwargs": {"enable_thinking": False}
             },
-            timeout=600 # 120
+            #timeout=600 # 120
         )
             response.raise_for_status()
             res=json.loads(response.content)

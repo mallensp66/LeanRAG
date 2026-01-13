@@ -63,10 +63,10 @@ task_conf:
   level_num: 2
 
   ## The header entity matches the number of processes (-1 indicates that all CPU cores are used).
-  num_processes_match: 1 # 16
+  num_processes_match: 4 # 16
 
   ## Inference multiprocessing quantity (-1 indicates using all CPU cores): 1 #16
-  num_processes_infer: 1
+  num_processes_infer: 4
 
   ## Skip triplet extraction?
   skip_extract_triple: False

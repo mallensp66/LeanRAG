@@ -252,7 +252,7 @@ class InstanceManager:
                 **kwargs,
                 "chat_template_kwargs": {"enable_thinking": False}
             },
-            timeout=600
+            #timeout=600
         )
             response.raise_for_status()
             res=json.loads(response.content)
