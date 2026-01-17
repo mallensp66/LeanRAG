@@ -112,17 +112,45 @@ async def triple_extraction(chunks,use_llm_func,output_dir):
         )
         return dict(maybe_nodes), dict(maybe_edges)
     
-    entity_results = await asyncio.gather(
-        *[_process_single_content_entity(c,use_llm_func) for c in ordered_chunks]
-    )
-    print()  # clear the progress bar
+    # ************************************************************************************************
+  
+    # entity_results = await asyncio.gather(
+    #     *[_process_single_content_entity(c,use_llm_func) for c in ordered_chunks]
+    # )
+    # print()  # clear the progress bar
 
-    # fetch all entities from results
-    all_entities = {}
-    for item in entity_results:
-        for k, v in item[0].items():
-            value = v[0]
-            all_entities[k] = v[0]
+    # # fetch all entities from results
+    # all_entities = {}
+    # for item in entity_results:
+    #     for k, v in item[0].items():
+    #         value = v[0]
+    #         all_entities[k] = v[0]
+
+
+    entity_results=[]
+
+    for c in ordered_chunks:
+        entity_result = await _process_single_content_entity(c, use_llm_func)
+        entity_results.append(entity_result)
+        print()   # clear the progress bar
+
+        all_entities = {}
+        for item in entity_result:
+            if len(item) > 0:
+                for k, v in item.items():
+                    all_entities[k] = v
+
+        save_entity=[]
+        for k,v in copy.deepcopy(all_entities).items():
+            save_entity.append(v)
+
+        write_jsonl(save_entity, f"{output_dir}/entity.jsonl")
+
+
+
+
+    # ************************************************************************************************
+
     context_entities = {key[0]: list(x[0].keys()) for key, x in zip(ordered_chunks, entity_results)}
     already_processed = 0
     async def _process_single_content_relation(chunk_key_dp,use_llm_func):           # for each chunk, run the func
@@ -201,26 +229,45 @@ async def triple_extraction(chunks,use_llm_func,output_dir):
             flush=True,
         )
         return dict(maybe_nodes), dict(maybe_edges)
-    relation_results = await asyncio.gather(
-        *[_process_single_content_relation(c,use_llm_func) for c in ordered_chunks]
-    )
-    print()
-    all_relations = {}
-    for item in relation_results:
-        for k, v in item[1].items():
-            all_relations[k] = v
-    save_entity=[]
-    save_relation=[]
-    for k,v in copy.deepcopy(all_entities).items():
-    #     del v['embedding']
-        save_entity.append(v)
-    for k,v in copy.deepcopy(all_relations).items():
-        save_relation.append(v)
-    write_jsonl(save_entity, f"{output_dir}/entity.jsonl")
-    write_jsonl(save_relation, f"{output_dir}/relation.jsonl")
-   
-            
     
+
+
+    # relation_results = await asyncio.gather(
+    #     *[_process_single_content_relation(c,use_llm_func) for c in ordered_chunks]
+    # )
+    # print()
+    # all_relations = {}
+    # for item in relation_results:
+    #     for k, v in item[1].items():
+    #         all_relations[k] = v
+    # save_entity=[]
+    # save_relation=[]
+    # for k,v in copy.deepcopy(all_entities).items():
+    # #     del v['embedding']
+    #     save_entity.append(v)
+    # for k,v in copy.deepcopy(all_relations).items():
+    #     save_relation.append(v)
+    # write_jsonl(save_entity, f"{output_dir}/entity.jsonl")
+    # write_jsonl(save_relation, f"{output_dir}/relation.jsonl")
+    
+
+    for c in ordered_chunks:
+        relation_result = await _process_single_content_relation(c, use_llm_func)
+        print()
+
+        all_relations = {}
+        for item in relation_result:
+            if len(item) > 0:
+                for k, v in item.items():
+                    all_relations[k] = v
+
+        save_relation=[]
+        for k,v in copy.deepcopy(all_relations).items():
+            save_relation.append(v)
+        write_jsonl(save_relation, f"{output_dir}/relation.jsonl")
+
+
+
     
     
 if __name__ == "__main__":
