@@ -181,8 +181,8 @@ if __name__=="__main__":
 
     db = pymysql.connect(host=host, user=user, port=port, password=password, charset=charset)
     global_config={}
-    WORKING_DIR = f"/{DATASET_ROOT}/mix_chunk3"
-    global_config['chunks_file']=f"{DATASET_ROOT}/mix_chunk3/mix_chunk3.json"
+    WORKING_DIR = f"/{DATASET_ROOT}/mix"
+    global_config['chunks_file']=f"{DATASET_ROOT}/mix_chunk.json"
     global_config['embeddings_func']=embedding
     global_config['working_dir']=WORKING_DIR
     global_config['topk']=2
