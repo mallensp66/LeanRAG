@@ -120,10 +120,12 @@ def write_jsonl(data, path, mode="a",encoding='utf-8'):
     with open(path, mode, encoding=encoding) as f:
         for d in data:
             f.write(json.dumps(d, ensure_ascii=False) + "\n")
+
 def write_jsonl_force(data, path, mode="w+",encoding='utf-8'):
     with open(path, mode, encoding=encoding) as f:
         for d in data:
             f.write(json.dumps(d, ensure_ascii=False) + "\n")
+            
 def check_test(entities):## Initially used to detect whether there are boundary errors
     e_l=[]
     for layer in entities:

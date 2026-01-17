@@ -5,13 +5,12 @@ import os
 import json
 from _utils import split_string_by_multi_markers,_handle_single_entity_extraction,\
     _handle_single_relationship_extraction,clean_str,pack_user_ass_to_openai_messages
-from tools.utils import InstanceManager,write_jsonl
+from tools.utils import InstanceManager,read_jsonl, write_jsonl
 from collections import Counter, defaultdict
 from prompt import PROMPTS
 import asyncio
 import re
 import copy
-from tools.utils import read_jsonl, write_jsonl
 
 import logging
 import yaml
