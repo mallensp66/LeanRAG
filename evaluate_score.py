@@ -95,6 +95,8 @@ def evaluate_item(i, query, answer, benchmark, tokenizer):
             else:
                 print(f"[{i}] Failed after retries: {e}")
                 return i, None, cur_token_cost
+            
+            
 def evaluate_example(query_file,result_file,output_file,dataset):
     total_token_cost = 0
     LLM_PROVIDER_MODEL = "xxxx"

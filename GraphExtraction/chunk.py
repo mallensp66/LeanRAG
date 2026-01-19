@@ -143,7 +143,7 @@ async def triple_extraction(chunks,use_llm_func,output_dir):
         for k,v in copy.deepcopy(all_entities).items():
             save_entity.append(v)
 
-        write_jsonl(save_entity, f"{output_dir}/entity.jsonl")
+        write_jsonl(save_entity, f"{output_dir}/chunk/entity.jsonl")
 
 
 
@@ -263,7 +263,7 @@ async def triple_extraction(chunks,use_llm_func,output_dir):
         save_relation=[]
         for k,v in copy.deepcopy(all_relations).items():
             save_relation.append(v)
-        write_jsonl(save_relation, f"{output_dir}/relation.jsonl")
+        write_jsonl(save_relation, f"{output_dir}/chunk/relation.jsonl")
 
 
 

@@ -32,6 +32,11 @@ TOTAL_API_CALL_COST = 0
 DATASET_ROOT = config['dataset']['root'] # ="ckg_data/mix_chunk3"
 DATASET = config['dataset']['dataset'] # ='mix'
 
+HOST = config['mysql']['host']
+USER = config['mysql']['user']
+PORT = config['mysql']['port']
+PASSWORD = config['mysql']['password']
+CHARSET = config['mysql']['charset']
 
 
 def embedding(texts: list[str]) -> np.ndarray:
@@ -169,20 +174,10 @@ def query_graph(global_config,db,query):
 
 
 if __name__=="__main__":
-    ## Read configuration file
-    conf_path = "config.yaml" 
-    with open(conf_path, "r", encoding="utf-8") as file:
-        args = yaml.safe_load(file)
-    host = args['mysql']['host']
-    user = args['mysql']['user']
-    port = args['mysql']['port']
-    password = args['mysql']['password']
-    charset = args['mysql']['charset']
-
-    db = pymysql.connect(host=host, user=user, port=port, password=password, charset=charset)
+    db = pymysql.connect(host=HOST, user=USER, port=PORT, password=PASSWORD, charset=CHARSET)
     global_config={}
-    WORKING_DIR = f"/{DATASET_ROOT}/mix"
-    global_config['chunks_file']=f"{DATASET_ROOT}/mix_chunk.json"
+    WORKING_DIR = f"/{DATASET_ROOT}/{DATASET}"
+    global_config['chunks_file']=f"{DATASET_ROOT}/{DATASET}_chunk.json"
     global_config['embeddings_func']=embedding
     global_config['working_dir']=WORKING_DIR
     global_config['topk']=2
@@ -195,8 +190,8 @@ if __name__=="__main__":
         generate_model=MODEL,
         startup_delay=30
     )
-    
     global_config['use_llm_func']=instanceManager.generate_text
+    
     query="What is the maturity date of the credit agreement?"
     topk=10
     ref,response=query_graph(global_config,db,query)

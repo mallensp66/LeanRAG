@@ -24,24 +24,28 @@ with open('config.yaml', 'r', encoding="utf-8") as file:
 LLM_MODEL = config['llm_provider']['model']
 LLM_PROVIDER_API_KEY = config['llm_provider']['api_key']
 LLM_PROVIDER_URL = config['llm_provider']['base_url']
-LLM_PROVIDER_PORT = config['llm_provider0']['base_port']
+LLM_PROVIDER_PORT = config['llm_provider']['base_port']
+
 EMBEDDING_MODEL = config['embedding_provider']['model']
+EMBEDDING_API_KEY = config['embedding_provider']['api_key']
 EMBEDDING_URL = config['embedding_provider']['base_url']
+EMBEDDING_PORT = config['embedding_provider']['base_port']
+
 WORKING_DIR= config["task_conf"]["output_dir"] 
 
 
 def get_common_rag_res(WORKING_DIR):
-    entity_path= Path(WORKING_DIR, "entity.jsonl").resolve() 
-    relation_path= Path(WORKING_DIR, "relation.jsonl").resolve().__str__() 
+    entity_path= Path(WORKING_DIR, "duplicates", "entity.jsonl").resolve() 
+    relation_path= Path(WORKING_DIR, "duplicates", "relation.jsonl").resolve()
     # i=0
     e_dic={}
     with open(entity_path,"r", encoding='utf-8') as f:
         for xline in f:
             
             line=json.loads(xline)
-            entity_name=str(line['entity_name'])
-            description=line['description']
-            source_id=line['source_id']
+            entity_name=str(line[0]['entity_name'])
+            description=line[0]['description']
+            source_id=line[0]['source_id']
             if entity_name not in e_dic.keys():
                 e_dic[entity_name]=dict(
                     entity_name=str(entity_name),
@@ -63,11 +67,11 @@ def get_common_rag_res(WORKING_DIR):
         for xline in f:
             
             line=json.loads(xline)
-            src_tgt=str(line['src_tgt'])
-            tgt_src=str(line['tgt_src'])
-            description=line['description']
+            src_tgt=str(line[0]['src_tgt'])
+            tgt_src=str(line[0]['tgt_src'])
+            description=line[0]['description']
             weight=1
-            source_id=line['source_id']
+            source_id=line[0]['source_id']
             r_dic[(src_tgt,tgt_src)]={
                 'src_tgt':str(src_tgt),
                 'tgt_src':str(tgt_src),
@@ -87,9 +91,10 @@ def get_common_rag_res(WORKING_DIR):
 
 def embedding(texts: list[str]) -> np.ndarray: #ollama serve
     model_name = EMBEDDING_MODEL
+    url = f"{EMBEDDING_URL}:{EMBEDDING_PORT}/v1"
     client = OpenAI(
-        api_key=EMBEDDING_MODEL,
-        base_url=EMBEDDING_URL
+        api_key=EMBEDDING_API_KEY,
+        base_url=url
     ) 
     embedding = client.embeddings.create(
         input=texts,
@@ -101,9 +106,10 @@ def embedding(texts: list[str]) -> np.ndarray: #ollama serve
 def embedding_init(entities:list[dict])-> list[dict]: 
     texts=[truncate_text(i['description']) for i in entities]
     model_name = EMBEDDING_MODEL
+    url = f"{EMBEDDING_URL}:{EMBEDDING_PORT}/v1"
     client = OpenAI(
-        api_key=EMBEDDING_MODEL,
-        base_url=EMBEDDING_URL
+        api_key=EMBEDDING_API_KEY,
+        base_url=url
     ) 
     embedding = client.embeddings.create(
         input=texts,
@@ -189,8 +195,8 @@ def hierarchical_clustering(global_config):
     save_community=[
     v for k, v in community.items()
 ]
-    write_jsonl(save_relation, f"{global_config['working_dir']}/generate_relations.jsonl")
-    write_jsonl(save_community, f"{global_config['working_dir']}/community.jsonl")
+    write_jsonl(save_relation, f"{global_config['working_dir']}/graph/generate_relations.jsonl")
+    write_jsonl(save_community, f"{global_config['working_dir']}/graph/community.jsonl")
     create_db_table_mysql(global_config['working_dir'])
     insert_data_to_mysql(global_config['working_dir'])
     

@@ -13,6 +13,7 @@ import tiktoken
 
 import logging
 import yaml
+import copy
 
 logger=logging.getLogger(__name__)
 
@@ -27,15 +28,15 @@ def summarize_entity(entity_name, description, summary_prompt, threshold, tokeni
     return entity_name, description  # If no summary is needed, return the original description.
 
 
-def truncate_data():
+def truncate_data(working_dir, output_path):
     # relation_path="/cpfs04/user/zhangyaoze/workspace/trag/processed_data/relation.jsonl"
     # relation_output_path="/cpfs04/user/zhangyaoze/workspace/trag/late_data/relation.jsonl"
     # entity_path="/cpfs04/user/zhangyaoze/workspace/trag/processed_data/entity.jsonl"
     # entity_output_path="/cpfs04/user/zhangyaoze/workspace/trag/late_data/entity.jsonl"
-    relation_path="processed_data/relation.jsonl"
-    relation_output_path="data/relation.jsonl"
-    entity_path="processed_data/entity.jsonl"
-    entity_output_path="data/entity.jsonl"
+    relation_path=f"{working_dir}/chunk/relation.jsonl"
+    relation_output_path=f"{output_path}/tripple/relation.jsonl"
+    entity_path=f"{working_dir}/chunk/entity.jsonl"
+    entity_output_path=f"{output_path}/tripple/entity.jsonl"
     res=[]
     i=0
     with open(relation_path,"r", encoding="utf-8") as f:
@@ -52,7 +53,7 @@ def truncate_data():
     with open(entity_path,"r", encoding="utf-8") as f:
         for uline in f:
                 line=json.loads(uline)
-                if "wtr20" in line['source_id']:
+                if "wtr20" in line[0]['source_id']:
                     res.append(line)
                     i+=1
                     if i==20000:
@@ -60,10 +61,10 @@ def truncate_data():
     write_jsonl(res,entity_output_path)
 
 def deal_duplicate_entity(working_dir,output_path, use_llm):
-    relation_path=f"{working_dir}/relation.jsonl"
-    relation_output_path=f"{output_path}/relation.jsonl"
-    entity_path=f"{working_dir}/entity.jsonl"
-    entity_output_path=f"{output_path}/entity.jsonl"
+    relation_path=f"{working_dir}/chunk/relation.jsonl"
+    relation_output_path=f"{output_path}/duplicates/relation.jsonl"
+    entity_path=f"{working_dir}/chunk/entity.jsonl"
+    entity_output_path=f"{output_path}/duplicates/entity.jsonl"
     
     all_entities=[]
     all_relations=[]
@@ -73,10 +74,10 @@ def deal_duplicate_entity(working_dir,output_path, use_llm):
     with open(entity_path,"r", encoding="utf-8")as f:
         for xline in f:
             line=json.loads(xline)
-            entity_name=str(line['entity_name']).replace("\"","")
-            entity_type=line['entity_type'].replace("\"","")
-            description=line['description'].replace("\"","")
-            source_id=line['source_id']
+            entity_name=str(line[0]['entity_name']).replace("\"","")
+            entity_type=line[0]['entity_type'].replace("\"","")
+            description=line[0]['description'].replace("\"","")
+            source_id=line[0]['source_id']
             if entity_name not in e_dic.keys():
                 e_dic[entity_name]=dict(
                     entity_name=str(entity_name),
@@ -112,16 +113,21 @@ def deal_duplicate_entity(working_dir,output_path, use_llm):
             e_dic[k]['description'] = summarized_desc
             all_entities.append(e_dic[k])
 
+    save_entity=[]
+    for v in all_entities:
+        x = []
+        x.append(v)
+        save_entity.append(x)
+    write_jsonl(save_entity, entity_output_path)
 
-    write_jsonl(all_entities,entity_output_path)
     with open(relation_path,"r", encoding="utf-8")as f:
         for xline in f:
-            line=json.loads(xline)[0]
-            src_tgt=str(line['src_id']).replace("\"","")
-            tgt_src=str(line['tgt_id']).replace("\"","")
-            description=line['description'].replace("\"","")
+            line=json.loads(xline)
+            src_tgt=str(line[0]['src_id']).replace("\"","")
+            tgt_src=str(line[0]['tgt_id']).replace("\"","")
+            description=line[0]['description'].replace("\"","")
             weight=1
-            source_id=line['source_id']
+            source_id=line[0]['source_id']
             # r_dic[(src_tgt,tgt_src)]={
             #     'src_tgt':str(src_tgt),
             #     'tgt_src':str(tgt_src),
@@ -138,7 +144,15 @@ def deal_duplicate_entity(working_dir,output_path, use_llm):
             ))
             # e_dic[src_tgt]['degree']+=1
             # e_dic[tgt_src]['degree']+=1
-    write_jsonl(all_relations,relation_output_path)
+
+    save_relations=[]
+    for v in all_relations:
+        x = []
+        x.append(v)
+        save_relations.append(x)
+    write_jsonl(save_relations, relation_output_path)
+
+    
 def process_triple(file_path, output_path, use_llm):
     create_if_not_exist(output_path)
     with open(file_path,"r", encoding="utf-8") as f:
@@ -146,10 +160,10 @@ def process_triple(file_path, output_path, use_llm):
         relations=[]
         for uline in f:
             line=json.loads(uline)
-            triple=line['triple'].split("\t")
-            doc_name=line['doc_name']
-            page_idx=line['page_idx']
-            paragraph_idx=line['paragraph_idx']
+            triple=line[0]['triple'].split("\t")
+            doc_name=line[0]['doc_name']
+            page_idx=line[0]['page_idx']
+            paragraph_idx=line[0]['paragraph_idx']
             source_id = doc_name + "_" + str(page_idx) + "_" + str(paragraph_idx)
             head_entity=triple[0][1:-1]
             head_description=triple[1][1:-1]
@@ -188,7 +202,7 @@ def process_triple(file_path, output_path, use_llm):
                 weight=1,
                 source_id=source_id
             ))
-    write_jsonl(relations,f"{output_path}/relation.jsonl") 
+    write_jsonl(relations,f"{output_path}/tripple/relation.jsonl") 
     res_entity=[]           
     tokenizer = tiktoken.get_encoding("cl100k_base")
     to_summarize = []
@@ -211,7 +225,7 @@ def process_triple(file_path, output_path, use_llm):
             entities[k]['description'] = summarized_desc
             res_entity.append(entities[k])
 
-    write_jsonl(res_entity,f"{output_path}/entity.jsonl")
+    write_jsonl(res_entity,f"{output_path}/tripple/entity.jsonl")
 
 
 def main():
@@ -240,11 +254,9 @@ def main():
         startup_delay=30
     )
     use_llm=instanceManager.generate_text
-    # deal_duplicate_entity()
-    # truncate_data()
+    # truncate_data(working_dir=working_dir,output_path=output_path)
     deal_duplicate_entity(working_dir=working_dir,output_path=output_path, use_llm=use_llm)
     # file_path="create_kg/data/processed_wtr_reports-kg-test/wtr03_e_by_page_block-head_20/new_triples_wtr03_e_by_page_block-head_20_descriptions.jsonl"
-    # output_path="ttt"
     # process_triple(file_path,output_path, use_llm)
 
 

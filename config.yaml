@@ -1,7 +1,7 @@
 
 dataset:
-  root: "data/mix"
-  dataset: "mix"
+  root: "data/five"
+  dataset: "five"
 
 file_chunker:
   max_token_size: 1024
@@ -9,10 +9,10 @@ file_chunker:
 
 
 embedding_provider:
-  model: "bge-m3:567m"
+  model: "text-embedding-bge-m3" # "bge-m3:567m"
   api_key: "ollama"
   base_url: "http://localhost"  # "http://localhost:11434/v1"
-  base_port: "11434"
+  base_port: "1234"
 
 llm_provider:
 
@@ -85,10 +85,10 @@ task_conf:
   ## The path to the corpus to be retrieved (can be a single file or a processed folder).
   # corpus_path: /data/H-RAG/processed_wtr_reports_jsons_0318/wtr03_e_by_page_block.jsonl
   # Example data：data/wtr03_e_by_page_block-head_20.jsonl or data/wtr03_e_by_page_block-head_100.jsonl
-  corpus_path: data/mix/mix_chunk3.json
+  corpus_path: data/five/five_chunk.json
 
   ## Output result directory
-  output_dir: data/mix
+  output_dir: data/five
 
   ## Referenced open-source triple file path
   ref_kg_path: CommonKG/config/triple_ref_test.txt
