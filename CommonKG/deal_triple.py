@@ -111,7 +111,7 @@ def process_triple(file_path,output_path, use_llm):
 
 def main():
     ## Read configuration file
-    conf_path = "config.yaml"  # "CommonKG/config/create_kg_conf_test.yaml"
+    conf_path = "config.yaml"
     with open(conf_path, "r", encoding="utf-8") as file:
         args = yaml.safe_load(file)
 

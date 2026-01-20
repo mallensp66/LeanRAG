@@ -44,3 +44,4 @@ typing_extensions==4.15.0
 tzdata==2025.2
 umap-learn==0.5.9.post2
 urllib3==2.5.0
+jsonlines==4.0.0  #only used for evaluate_score

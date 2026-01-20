@@ -86,7 +86,7 @@ Based on Wikipedia entities. First, define a **head entity list**, then extract 
 **Usage:**
 
 1. Edit the configuration file:  
-   `CommonKG/config/create_kg_conf_test.yaml`  
+   `CommonKG/config/config.yaml`  
    Fill in the model's `url` and `name`, and the path to the chunk file.
 2. Run extraction:  
    ```bash

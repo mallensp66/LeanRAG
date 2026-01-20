@@ -271,7 +271,7 @@ async def triple_extraction(chunks,use_llm_func,output_dir):
     
 if __name__ == "__main__":
     ## Read configuration file
-    conf_path = "config.yaml"  # "CommonKG/config/create_kg_conf_test.yaml"
+    conf_path = "config.yaml"
     with open(conf_path, "r", encoding="utf-8") as file:
         args = yaml.safe_load(file)
 

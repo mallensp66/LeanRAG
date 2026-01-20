@@ -1,7 +1,8 @@
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 from openai import OpenAI
 import json
+import jsonlines
 
 
 def evaluate_item(i, query, answer, benchmark, tokenizer):
@@ -97,7 +98,7 @@ def evaluate_item(i, query, answer, benchmark, tokenizer):
                 return i, None, cur_token_cost
             
             
-def evaluate_example(query_file,result_file,output_file,dataset):
+def evaluate_example(query_file, result_file, output_file, dataset, tokenizer):
     total_token_cost = 0
     LLM_PROVIDER_MODEL = "xxxx"
     LLM_PROVIDER_URL = "xxxx"
