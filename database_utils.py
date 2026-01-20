@@ -155,6 +155,7 @@ def insert_data_to_mysql(working_dir):
     dbname=os.path.basename(working_dir)
     db = pymysql.connect(host=HOST, user=USER, port=PORT, password=PASSWORD, charset=CHARSET)
     cursor = db.cursor()
+    cursor.execute(f"USE {dbname};")
     
     entity_path=f"{working_dir}/all_entities.json"
     with open(entity_path,"r", encoding="utf-8")as f:
