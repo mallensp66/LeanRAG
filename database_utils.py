@@ -369,7 +369,7 @@ def search_nodes(entity_set,working_dir):
         res.append(ret[0])
     return res
 
-def get_text_units(working_dir,chunks_set,chunks_file,k=5):
+def get_text_units(working_dir,chunks_set, chunks_file, k=5):
     db_name=os.path.basename(working_dir)
     chunks_list=[]
     for chunks in chunks_set:
@@ -398,7 +398,7 @@ def get_text_units(working_dir,chunks_set,chunks_file,k=5):
     
     chunks_dict={}
     text_units=""
-    with open (chunks_file,'r')as f:
+    with open (chunks_file,'r', encoding='utf-8')as f:
         chunks_dict= json.load(f)
     chunks_dict={item["hash_code"]: item["text"] for item in chunks_dict}
     

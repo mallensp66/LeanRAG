@@ -23,14 +23,16 @@ with open('config.yaml', 'r', encoding="utf-8") as file:
 MODEL = config['llm_provider']['model']
 LLM_PROVIDER_API_KEY = config['llm_provider']['api_key']
 LLM_PROVIDER_URL = config['llm_provider']['base_url']
-LLM_PROVIDER_PORT = config['llm_provider0']['base_port']
+LLM_PROVIDER_PORT = config['llm_provider']['base_port']
 EMBEDDING_MODEL = config['embedding_provider']['model']
 EMBEDDING_URL = config['embedding_provider']['base_url']
+EMBEDDING_PORT = config['embedding_provider']['base_port']
 TOTAL_TOKEN_COST = 0
 TOTAL_API_CALL_COST = 0
 
 DATASET_ROOT = config['dataset']['root'] # ="ckg_data/mix_chunk3"
 DATASET = config['dataset']['dataset'] # ='mix'
+WORKING_DIR= config["task_conf"]["output_dir"] 
 
 HOST = config['mysql']['host']
 USER = config['mysql']['user']
@@ -41,9 +43,10 @@ CHARSET = config['mysql']['charset']
 
 def embedding(texts: list[str]) -> np.ndarray:
     model_name = EMBEDDING_MODEL
+    url = f"{EMBEDDING_URL}:{EMBEDDING_PORT}/v1"
     client = OpenAI(
         api_key=EMBEDDING_MODEL,
-        base_url=EMBEDDING_URL
+        base_url=url
     ) 
     embedding = client.embeddings.create(
         input=texts,
@@ -133,7 +136,7 @@ def get_aggregation_description(global_config,reasoning_path,if_findings=False):
         aggregation_descriptions+="\n".join([information[0]+"\t\t"+str(information[1]) for information in aggregation_results])
     return aggregation_descriptions,communities
 
-def query_graph(global_config,db,query):
+def query_graph(global_config, db, query):
     use_llm_func: callable = global_config["use_llm_func"]
     embedding: callable=global_config["embeddings_func"]
     b=time.time()
@@ -147,7 +150,7 @@ def query_graph(global_config,db,query):
     entity_descriptions=get_entity_description(global_config,entity_results)
     reasoning_path,reasoning_path_information_description=get_reasoning_chain(global_config,res_entity)
     # reasoning_path,reasoning_path_information_description=get_path_chain(global_config,res_entity)
-    aggregation_descriptions,aggregation=get_aggregation_description(global_config,reasoning_path)
+    aggregation_descriptions, aggregation = get_aggregation_description(global_config,reasoning_path)
     # chunks=search_chunks(global_config['working_dir'],aggregation)
     text_units=get_text_units(global_config['working_dir'],chunks,chunks_file,k=5)
     describe=f"""
@@ -176,7 +179,6 @@ def query_graph(global_config,db,query):
 if __name__=="__main__":
     db = pymysql.connect(host=HOST, user=USER, port=PORT, password=PASSWORD, charset=CHARSET)
     global_config={}
-    WORKING_DIR = f"/{DATASET_ROOT}/{DATASET}"
     global_config['chunks_file']=f"{DATASET_ROOT}/{DATASET}_chunk.json"
     global_config['embeddings_func']=embedding
     global_config['working_dir']=WORKING_DIR
@@ -192,9 +194,9 @@ if __name__=="__main__":
     )
     global_config['use_llm_func']=instanceManager.generate_text
     
-    query="What is the maturity date of the credit agreement?"
+    query="According to the experimental results, what are the two primary types of detection errors made by ScanSSD, and how does its performance compare to the 'Samsung' system in Table II?"
     topk=10
-    ref,response=query_graph(global_config,db,query)
+    ref,response=query_graph(global_config, db, query)
     print(ref)
     print("#"*20)
     print(response)
