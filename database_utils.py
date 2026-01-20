@@ -20,6 +20,8 @@ CHARSET = args['mysql']['charset']
 MILVUS_HOST = args['milvus']['host']
 MILVUS_PORT = args['milvus']['port']
 
+WORKING_DIR= args["task_conf"]["output_dir"] 
+
 
 
 def build_vector_search(data,working_dir):
@@ -154,7 +156,7 @@ def insert_data_to_mysql(working_dir):
     db = pymysql.connect(host=HOST, user=USER, port=PORT, password=PASSWORD, charset=CHARSET)
     cursor = db.cursor()
     
-    entity_path=os.path.join(working_dir,"all_entities.json")
+    entity_path=f"{working_dir}/all_entities.json"
     with open(entity_path,"r", encoding="utf-8")as f:
         val=[]
         for level,entitys in enumerate(f):
@@ -192,7 +194,7 @@ def insert_data_to_mysql(working_dir):
             print(e)
             print("insert entities error")
          
-    relation_path=os.path.join(working_dir,"generate_relations.jsonl")
+    relation_path=f"{working_dir}/graph/generate_relations.jsonl"
     with open(relation_path,"r", encoding="utf-8")as f:
         val=[]
         for relation_l in f:
@@ -215,7 +217,7 @@ def insert_data_to_mysql(working_dir):
             print(e)
             print("insert relations error")
         
-    community_path=os.path.join(working_dir,"community.jsonl")
+    community_path=f"{working_dir}/graph/community.jsonl"
     with open(community_path,"r", encoding="utf-8")as f:
         val=[]
         for community_l in f:
@@ -452,12 +454,12 @@ def insert_origin_relations(working_dir):
 
 
 if __name__ == "__main__":
-    working_dir='exp/compare_hirag_opt1_commonkg_32b/mix'
+    working_dir=WORKING_DIR
     # build_vector_search()
     # search_vector_search()
-    create_db_table_mysql(working_dir)
+    #create_db_table_mysql(working_dir)
     insert_data_to_mysql(working_dir)
-    insert_origin_relations(working_dir)
+    #insert_origin_relations(working_dir)
     # print(find_tree_root(working_dir,'Policies'))
     # print(search_nodes_link('Innovation Policy Network','document',working_dir,0))
     # from query_graph import embedding
